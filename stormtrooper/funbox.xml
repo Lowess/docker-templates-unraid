@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Funbox</Name>
+  <Repository>wernight/funbox</Repository>
+  <Registry>https://hub.docker.com/r/wernight/funbox/</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>/dev/null/</Support>
+  <Overview>
+    This is the Docker Funbox Unraid App! It's mostly used as learning material for dicovering Unraid docker plugin mecanism
+  </Overview>
+  <Category>Game Servers</Category>
+  <WebUI>http://[IP]:[PORT:8181]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/jlesage/docker-templates/master/jlesage/nginx-proxy-manager.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/jlesage/docker-templates/master/jlesage/images/nginx-proxy-manager-icon.png</Icon>
+  <ExtraParams/>
+  <Description>
+This is the Docker Funbox Unraid App! It's mostly used as learning material for dicovering Unraid docker plugin mecanism
+  </Description>
+  <Beta>True</Beta>
+  <Project>https://hub.docker.com/r/wernight/funbox</Project>
+  <Date>2022-03-16</Date>
+  <Changes>
+###v0.0.1 (2022-03-16)
+- Initial release.
+  </Changes>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>6666</HostPort>
+        <ContainerPort>6666</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/funbox</HostDir>
+      <ContainerDir>/somepath</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <Environment>
+    <Variable>
+      <Value>99</Value>
+      <Name>USER_ID</Name>
+      <Mode/>
+    </Variable>
+  </Environment>
+  
+  <!-- Volume Mappings -->
+  <Config Name="Config Directory" Target="/somepath" Default="/mnt/user/appdata/funbox" Mode="rw" Description="This is not really used" Type="Path" Display="advanced-hide" Required="true" Mask="false"/>
+  
+  <!-- Port Mappings -->
+  <Config Name="Web UI Port" Target="6666" Default="6666" Mode="tcp" Description="Port to nowhere" Type="Port" Display="always" Required="true" Mask="false"/>
+ </Container>
