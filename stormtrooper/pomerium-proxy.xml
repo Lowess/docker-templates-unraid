@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>Pomerium Proxy</Name>
+	<Repository>lowess/pomerium-proxy</Repository>
+	<Registry>https://hub.docker.com/r/lowess/pomerium-proxy/</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>/dev/null/</Support>
+	<Overview>
+    Pomerium Nginx Proxy - Secure, identity-aware access from anywhere.
+	</Overview>
+	<Category>Proxy</Category>
+	<WebUI>http://[IP]:[PORT:20443]</WebUI>
+	<TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/pomerium-proxy.xml</TemplateURL>
+	<Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/images/pomerium-proxy.png</Icon>
+	<ExtraParams />
+	<Description>
+    Secure, identity-aware access from anywhere. Access internal resources securely. Implement zero trust. Achieve compliance. All without the headache of a VPN.
+	</Description>
+	<Beta>True</Beta>
+	<Project>https://www.pomerium.com/guides/nginx.html</Project>
+	<Date>2022-03-16</Date>
+	<Changes>
+		###v0.0.1 (2022-03-18)
+		- Initial release.
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+		<Publish>
+			<Port>
+				<HostPort>2080</HostPort>
+				<ContainerPort>80</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+			<Port>
+				<HostPort>20443</HostPort>
+				<ContainerPort>443</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+		</Publish>
+	</Networking>
+
+	<!-- Port Mappings -->
+	<Config Type="Port" Name="Web UI Port" Target="443" Default="20443" Mode="tcp"
+					Description="Port of Promerium Nginx Proxy" Display="always" Required="true" Mask="false" />
+
+	<!-- Nginx Proxy domains Environment -->
+
+	<Config Type="Variable" Name="Pomerium Domain" Target="POMERIUM_DOMAIN"
+	Default="localhost"
+	Description="If you have a wildcard domain name on DuckDNS or elsewhere, please put it here eg 'example.duckdns.org'"
+	Mask="false"
+	Display="always"
+	Required="false">localhost</Config>
+
+	<Config Type="Variable" Name="Pomerium upstream container" Target="POMERIUM_UPSTREAM"
+	Default="localhost:8801"
+	Description="The Pomerium container Host:[Port] to use as Pomerium upstream"
+	Mask="false"
+	Display="always"
+	Required="false">localhost:8801</Config>
+
+	<Config Type="Variable" Name="Pomerium verify upstream container" Target="POMERIUM_VERIFY_UPSTREAM"
+	Default="localhost:8800"
+	Description="The Pomerium container Host:[Port] to use as Verify upstream"
+	Mask="false"
+	Display="always"
+	Required="false">localhost:8801</Config>
+
+
+	<Config Type="Variable" Name="Forward Auth URL" Target="POMERIUM_FWDAUTH_SERVER_NAME"
+	Default="fwdauth"
+	Description="Forward server name. The name will be concateneted with POMERIUM_DOMAIN. Remember to create the appropriate rules on your reverse proxy web server"
+	Mask="false"
+	Display="advanced"
+	Required="false">fwdauth</Config>
+
+	<Config Type="Variable" Name="Authenticate Service URL" Target="POMERIUM_AUTHENTICATE_SERVER_NAME"
+	Default="authenticate"
+	Description="Pomerium Authenticate server name. The name will be concateneted with POMERIUM_DOMAIN.  Remember to create the appropriate rules on your reverse proxy web server"
+	Mask="false"
+	Display="advanced"
+	Required="false">authenticate</Config>
+
+	<Config Type="Variable" Name="Verify Service URL" Target="POMERIUM_VERIFY_SERVER_NAME"
+	Default="verify"
+	Description="Pomerium Verify server name. The name will be concatenated with POMERIUM_DOMAIN.  Remember to create the appropriate rules on your reverse proxy web server"
+	Mask="false"
+	Display="advanced"
+	Required="false">verify</Config>
+
+	<!-- SSL -->
+	<Config Type="Variable" Name="SSL Certificate" Target="POMERIUM_SSL_CERTFICATE"
+	Default="/etc/nginx/ssl/live/npm-1/fullchain.pem"
+	Description="The SSL certificate from the NginxProxyManager volume"
+	Mask="false"
+	Display="advanced"
+	Required="false">/etc/nginx/ssl/live/npm-1/fullchain.pem</Config>
+
+	<Config Type="Variable" Name="SSL Certificate Key" Target="POMERIUM_SSL_CERTIFICATE_KEY"
+	Default="/etc/nginx/ssl/live/npm-1/privkey.pem"
+	Description="The SSL certificate key from the NginxProxyManager volume"
+	Mask="false"
+	Display="advanced"
+	Required="false">/etc/nginx/ssl/live/npm-1/privkey.pem</Config>
+
+  <!-- Volume Mappings -->
+  <Config Type="Path" Name="NginxProxyManager Letsencrypt SSL folder" Target="/etc/nginx/ssl"
+	Default="/mnt/user/appdata/NginxProxyManager/letsencrypt"
+	Mode="ro"
+	Description="Nginx Proxy Manager Letsencrypt SSL certificate folder that can be found in /appdata/NginxProxyManager/letsencrypt"
+	Display="always"
+	Required="true" Mask="false"/>
+</Container>
