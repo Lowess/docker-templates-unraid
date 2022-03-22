@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>Pomerium Route Sync</Name>
+	<Repository>lowess/yasha</Repository>
+	<Registry>https://hub.docker.com/r/lowess/yasha/</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>/dev/null/</Support>
+	<Overview>
+    Yasha template engine used to make refreshing Pomerium routes a breeze !
+	</Overview>
+	<Category>Utils</Category>
+	<TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/pomerium-route-sync.xml</TemplateURL>
+	<Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/images/pomerium-route-sync.png</Icon>
+	<ExtraParams />
+	<Description>
+    Yasha template engine used to make refreshing Pomerium routes a breeze !
+	</Description>
+	<Beta>True</Beta>
+	<Project>https://github.com/kblomqvist/yasha</Project>
+	<Date>2022-03-21</Date>
+	<Changes>
+		###v0.0.1 (2022-03-21)
+		- Initial release.
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+	</Networking>
+
+	<!-- Nginx Proxy domains Environment -->
+
+	<Config Type="Variable" Name="Pomerium Domain" Target="POMERIUM_ROUTES_DOMAIN"
+	Default="example.duckdns.org"
+	Description="Use the same domain as the one configured on your reverse proxy. If you use a DuckDNS wildcard domain, please put it here eg 'example.duckdns.org'"
+	Mask="false"
+	Display="always"
+	Required="false">example.duckdns.org</Config>
+
+	<Config Type="Variable" Name="Pomerium Authorized Emails" Target="POMERIUM_ROUTES_AUTHORIZED_EMAILS"
+	Default="email@acme.com"
+	Description="A comma separated value (CSV) list of email adresses authorized to access Pomerium protected routes"
+	Mask="false"
+	Display="always"
+	Required="false">email@acme.com</Config>
+
+	<Config Type="Variable" Name="Pomerium Routes" Target="POMERIUM_ROUTES"
+	Default=""
+	Description="A comma separated value (CSV) list of routes. a route is expressed in the form of {from}=>{to} eg 'http://proxy.acme.duckdns.org => http://192.168.1.100:20443 ,"
+	Mask="false"
+	Display="always"
+	Required="false"></Config>
+
+	<Config Type="Variable" Name="Pomerium Routes Authorized Domains" Target="POMERIUM_ROUTES_AUTHORIZED_DOMAINS"
+	Default=""
+	Description="A comma separated value (CSV) list of domains authorized to access Pomerium protected routes"
+	Mask="false"
+	Display="advanced"
+	Required="false"></Config>
+
+  <!-- Volume Mappings -->
+
+	<Config Type="Path" Name="PomeriumRouteSync templates folder" Target="/templates/routes.yaml.j2"
+	Default="/mnt/user/appdata/PomeriumRouteSync/templates/routes.yaml.j2"
+	Mode="ro"
+	Description="Path to the Jinja2 template to use to render Pomerium routes. Please find the template here https://github.com/Lowess/docker-templates-unraid/blob/main/templates/pomerium/routes.yaml.j2"
+	Display="always"
+	Required="true" Mask="false"/>
+
+	<Config Type="Path" Name="Pomerium config" Target="/render/config.yaml"
+	Default="/mnt/user/appdata/Pomerium/config.yaml"
+	Mode="rw"
+	Description="Pomerium config.yaml file to store rendered routes in."
+	Display="always"
+	Required="true"
+	Mask="false"
+	/>
+	<PostArgs>
+		/templates/routes.yaml.j2 -o /render/config.yaml
+	</PostArgs>
+</Container>

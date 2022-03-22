@@ -1,0 +1,46 @@
+{#- Input variable parsing -#}
+{%- set routes_domain = (('POMERIUM_ROUTES_DOMAIN' | env) | default("", true)) -%}
+{%- set trusted_emails = (('POMERIUM_ROUTES_AUTHORIZED_EMAILS' | env) | default("", true)).split(',') | reject("eq", "") | list  -%}
+{%- set routes = (('POMERIUM_ROUTES' | env) | default("", true)).split(',') | reject("eq", "") | list -%}
+
+{#- Macro -#}
+{%- macro render_allow(trusted_emails, trusted_domains) -%}
+or:
+  {% if trusted_domains | length == 0 and trusted_emails | length == 0 %}{{ '[]' | indent(2,true) }}{% endif %}
+  {% for domain in trusted_domains %}
+  - domain:
+      is: {{ domain }}
+  {% endfor -%}
+  {% for email in trusted_emails %}
+  - email:
+      is: {{ email }}
+  {% endfor -%}
+{%- endmacro %}
+
+{#- Macro -#}
+{% macro render_domain(route, domain) -%}
+  {%- if domain is not none -%}
+    {%- if route.endswith(domain) -%}
+      {{ route }}
+    {%- else -%}
+      {{ route }}.{{ domain }}
+    {%- endif -%}
+  {%- else -%}
+    {{ route }}
+  {%- endif -%}
+{%- endmacro -%}
+
+---
+### File last generated on {{ "date" | shell }}
+routes:
+  {% for route in routes %}
+  {%- set route_from, route_to = route.split("=>") %}
+  - from: {{ render_domain(route_from | trim, routes_domain) }}
+    to: {{ route_to | trim }}
+    pass_identity_headers: true
+    policy:
+      - allow:
+          {{ render_allow(trusted_emails, trusted_domains) | indent(10) }}
+  {% else %}
+  {{ '[]' | indent(2, false) }}
+  {% endfor %}

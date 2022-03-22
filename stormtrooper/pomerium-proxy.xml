@@ -53,19 +53,19 @@
 	Display="always"
 	Required="false">localhost</Config>
 
-	<Config Type="Variable" Name="Pomerium upstream container" Target="POMERIUM_UPSTREAM"
+	<Config Type="Variable" Name="Pomerium upstream container" Target="POMERIUM_ROUTES_AUTHORIZED_EMAILS"
 	Default="localhost:8801"
 	Description="The Pomerium container Host:[Port] to use as Pomerium upstream"
 	Mask="false"
 	Display="always"
 	Required="false">localhost:8801</Config>
 
-	<Config Type="Variable" Name="Pomerium verify upstream container" Target="POMERIUM_VERIFY_UPSTREAM"
+	<Config Type="Variable" Name="Pomerium verify upstream container" Target="POMERIUM_ROUTES_AUTHORIZED_DOMAINS"
 	Default="localhost:8800"
 	Description="The Pomerium container Host:[Port] to use as Verify upstream"
 	Mask="false"
-	Display="always"
-	Required="false">localhost:8801</Config>
+	Display="advanced"
+	Required="false"></Config>
 
 
 	<Config Type="Variable" Name="Forward Auth URL" Target="POMERIUM_FWDAUTH_SERVER_NAME"
