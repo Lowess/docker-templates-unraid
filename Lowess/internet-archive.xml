@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>Internet Archive</Name>
+	<Repository>lowess/internetarchive</Repository>
+	<Registry>https://hub.docker.com/r/lowess/internetarchive/</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>/dev/null/</Support>
+	<Overview>
+		Internet Archive is a command-line and Python interface to archive.org.
+	</Overview>
+	<Category>Utils</Category>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/internet-archive.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/images/internet-archive.png</Icon>
+	<ExtraParams />
+	<Description>
+		Internet Archive is a command-line and Python interface to archive.org.
+	</Description>
+	<Beta>True</Beta>
+	<Project>https://github.com/internetarchive</Project>
+	<Date>2024-02-25</Date>
+	<Changes>
+		###v0.0.1 (2024-02-25)
+		- Initial release.
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+	</Networking>
+
+	<!-- Volume Mappings -->
+
+	<Config Type="Path" Name="Download folder" Target="/downloads"
+		Default=""
+		Mode="rw"
+		Description="Path to the download folder"
+		Display="always"
+		Required="true" Mask="false" />
+	<PostArgs>
+		-c "tail -F /dev/null"
+	</PostArgs>
+</Container>
