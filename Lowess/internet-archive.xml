@@ -11,9 +11,9 @@
 	</Overview>
 	<Category>Utils</Category>
 	<TemplateURL>
-		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/internet-archive.xml</TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/internet-archive.xml</TemplateURL>
 	<Icon>
-		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/images/internet-archive.png</Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/internet-archive.png</Icon>
 	<ExtraParams />
 	<Description>
 		Internet Archive is a command-line and Python interface to archive.org.
@@ -29,6 +29,14 @@
 		<Mode>bridge</Mode>
 	</Networking>
 
+	<Config Type="Variable" Name="Collection to download from"
+		Target="IA_COLLECTION"
+		Default=""
+		Description=""
+		Mask="false"
+		Display="always"
+		Required="true"></Config>
+
 	<!-- Volume Mappings -->
 
 	<Config Type="Path" Name="Download folder" Target="/downloads"
@@ -37,7 +45,8 @@
 		Description="Path to the download folder"
 		Display="always"
 		Required="true" Mask="false" />
+
 	<PostArgs>
-		-c "tail -F /dev/null"
+		${IA_COLLECTION}
 	</PostArgs>
 </Container>

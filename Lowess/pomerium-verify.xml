@@ -11,8 +11,10 @@
 </Overview>
   <Category>Proxy</Category>
   <WebUI>http://[IP]:[PORT:8000]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/pomerium-verify.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/stormtrooper/images/pomerium-verify.png</Icon>
+  <TemplateURL>
+    https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/pomerium-verify.xml</TemplateURL>
+  <Icon>
+    https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/pomerium-verify.png</Icon>
   <ExtraParams />
   <Description>
     Pomerium Verify service
@@ -21,8 +23,8 @@
   <Project>https://www.pomerium.com/</Project>
   <Date>2022-03-16</Date>
   <Changes>
-###v0.0.1 (2022-03-16)
-- Initial release.
+    ###v0.0.1 (2022-03-16)
+    - Initial release.
 </Changes>
   <Networking>
     <Mode>bridge</Mode>
@@ -35,5 +37,6 @@
     </Publish>
   </Networking>
   <!-- Port Mappings -->
-  <Config Name="Web UI Port" Target="8000" Default="8800" Mode="tcp" Description="Port of Pomerium Verify" Type="Port" Display="always" Required="true" Mask="false" />
+  <Config Name="Web UI Port" Target="8000" Default="8800" Mode="tcp"
+    Description="Port of Pomerium Verify" Type="Port" Display="always" Required="true" Mask="false" />
 </Container>
