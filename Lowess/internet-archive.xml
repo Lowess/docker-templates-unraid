@@ -9,7 +9,7 @@
 	<Overview>
 		Internet Archive is a command-line and Python interface to archive.org.
 	</Overview>
-	<Category>Utils</Category>
+	<Category>Tools:Utilities</Category>
 	<TemplateURL>
 		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/internet-archive.xml</TemplateURL>
 	<Icon>

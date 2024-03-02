@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Maintainer>
+    <Icon>
+        https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/avatar.png
+    </Icon>
+    <Profile>
+        Passionate DevOps engineer crafting Docker containers with a unique twist. My approach goes
+        beyond conventional methods, focusing on lean containers with only essential dependencies.
+        Each container dynamically fetches and updates the application upon start/restart, ensuring
+        seamless operation. Join me in redefining the Unraid experience, one container at a time.
+    </Profile>
+</Maintainer>

@@ -9,7 +9,7 @@
   <Overview>
     Pomerium Verify container
 </Overview>
-  <Category>Proxy</Category>
+  <Category>Network:Proxy</Category>
   <WebUI>http://[IP]:[PORT:8000]</WebUI>
   <TemplateURL>
     https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/pomerium-verify.xml</TemplateURL>
