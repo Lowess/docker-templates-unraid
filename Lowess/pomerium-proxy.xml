@@ -10,7 +10,7 @@
 		Pomerium Nginx Proxy - Secure, identity-aware access from anywhere.
 	</Overview>
 	<Category>Network:Proxy</Category>
-	<WebUI>http://[IP]:[PORT:20443]</WebUI>
+	<WebUI>http://[IP]:[PORT:443]</WebUI>
 	<TemplateURL>
 		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/pomerium-proxy.xml</TemplateURL>
 	<Icon>
