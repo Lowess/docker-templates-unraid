@@ -1,0 +1,253 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>GoRetro</Name>
+	<Repository>lowess/goretro</Repository>
+	<Registry>https://hub.docker.com/r/lowess/goretro/</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/Lowess/goretro/issues</Support>
+	<Overview>
+		GoRetro - Generate gamelist XML files for retro gaming frontends with metadata scraping from ScreenScraper and media downloads.
+	</Overview>
+	<Category>Tools:</Category>
+	<WebUI></WebUI>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/goretro.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/goretro.png</Icon>
+	<ExtraParams></ExtraParams>
+	<Description>
+		Generate gamelist XML files for EmulationStation and other retro gaming frontends.
+		Scrape metadata from ScreenScraper API including game information, ratings, genres,
+		release dates, and download media files (thumbnails and images). Supports caching
+		for fast re-runs and parallel downloads for maximum performance.
+
+		USAGE: Mount your base ROM directory (e.g., /mnt/user/roms) which should contain subdirectories
+		for each system (snes, nes, gb, gba, etc.). Set the SYSTEM variable to match the subdirectory name.
+		The container will automatically scan /roms/[SYSTEM]/ for ROM files.
+
+		Example structure:
+		/mnt/user/roms/
+		  ├── snes/  (mount base as /roms, set SYSTEM=snes)
+		  ├── nes/
+		  ├── gba/
+		  └── psx/
+	</Description>
+	<Beta>False</Beta>
+	<Project>https://github.com/Lowess/goretro</Project>
+	<Date>2025-01-03</Date>
+	<Changes>
+		###v1.0.0 (2025-01-03)
+		- Initial release with scraping and media download support
+		- Live progress dashboard
+		- Parallel media downloads
+		- Smart caching system
+		- Multi-system support (50+ systems)
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+	</Networking>
+
+	<!-- System Configuration -->
+	<Config Type="Variable" Name="System Name" Target="SYSTEM"
+		Default=""
+		Description="System name for better scraping accuracy (e.g., snes, nes, gb, gba, genesis, psx). Leave empty to disable scraping. See documentation for full list of supported systems."
+		Mask="false"
+		Display="always"
+		Required="false"></Config>
+
+	<Config Type="Variable" Name="Enable Scraping" Target="ENABLE_SCRAPE"
+		Default="false"
+		Description="Enable metadata scraping from ScreenScraper API. Requires SYSTEM to be set."
+		Mask="false"
+		Display="always"
+		Required="false">false</Config>
+
+	<Config Type="Variable" Name="Download Media" Target="DOWNLOAD_MEDIA"
+		Default="false"
+		Description="Download media files (thumbnails and images) from ScreenScraper. Requires scraping to be enabled."
+		Mask="false"
+		Display="always"
+		Required="false">false</Config>
+
+	<!-- ScreenScraper Credentials (Required for scraping) -->
+	<Config Type="Variable" Name="ScreenScraper User ID" Target="SCREENSCRAPER_USER_ID"
+		Default=""
+		Description="Your ScreenScraper username (REQUIRED for scraping). Create a free account at https://www.screenscraper.fr/"
+		Mask="false"
+		Display="always"
+		Required="true"></Config>
+
+	<Config Type="Variable" Name="ScreenScraper User Password" Target="SCREENSCRAPER_USER_PASSWORD"
+		Default=""
+		Description="Your ScreenScraper password (REQUIRED for scraping)."
+		Mask="true"
+		Display="always"
+		Required="true"></Config>
+
+	<Config Type="Variable" Name="ScreenScraper Dev ID" Target="SCREENSCRAPER_DEV_ID"
+		Default=""
+		Description="ScreenScraper Developer ID (REQUIRED for scraping). Get from your ScreenScraper profile page."
+		Mask="false"
+		Display="always"
+		Required="true"></Config>
+
+	<Config Type="Variable" Name="ScreenScraper Dev Password" Target="SCREENSCRAPER_DEV_PASSWORD"
+		Default=""
+		Description="ScreenScraper Developer Password (REQUIRED for scraping). Get from your ScreenScraper profile page."
+		Mask="true"
+		Display="always"
+		Required="true"></Config>
+
+	<Config Type="Variable" Name="ScreenScraper Software Name" Target="SCREENSCRAPER_SOFT_NAME"
+		Default="GoRetro-1.0"
+		Description="Software name for API identification (optional, uses default if empty)."
+		Mask="false"
+		Display="advanced"
+		Required="false">GoRetro-1.0</Config>
+
+	<Config Type="Variable" Name="Skip TLS Verification" Target="SCREENSCRAPER_INSECURE_SKIP_TLS"
+		Default="false"
+		Description="Skip TLS certificate verification. WARNING: Only use temporarily if ScreenScraper SSL certificate is expired. Set to 'true' or 'false'."
+		Mask="false"
+		Display="advanced"
+		Required="false">false</Config>
+
+	<!-- Path Mappings -->
+	<Config Type="Path" Name="ROM Directory (Base)" Target="/roms"
+		Default="/mnt/user/data/media/roms"
+		Mode="ro"
+		Description="Base ROM directory containing all system subdirectories (read-only recommended)."
+		Display="always"
+		Required="true" Mask="false">/mnt/user/roms</Config>
+
+	<!-- Individual System ROM Paths (Optional - only if you want specific system mounts) -->
+	<Config Type="Path" Name="SNES ROMs" Target="/roms/snes"
+		Default=""
+		Mode="ro"
+		Description="Super Nintendo Entertainment System ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="NES ROMs" Target="/roms/nes"
+		Default=""
+		Mode="ro"
+		Description="Nintendo Entertainment System ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="Game Boy ROMs" Target="/roms/gb"
+		Default=""
+		Mode="ro"
+		Description="Game Boy ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="Game Boy Advance ROMs" Target="/roms/gba"
+		Default=""
+		Mode="ro"
+		Description="Game Boy Advance ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="Genesis ROMs" Target="/roms/genesis"
+		Default=""
+		Mode="ro"
+		Description="Sega Genesis/Mega Drive ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="N64 ROMs" Target="/roms/n64"
+		Default=""
+		Mode="ro"
+		Description="Nintendo 64 ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="PlayStation ROMs" Target="/roms/psx"
+		Default=""
+		Mode="ro"
+		Description="PlayStation (PSX) ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="Atari 2600 ROMs" Target="/roms/atari2600"
+		Default=""
+		Mode="ro"
+		Description="Atari 2600 ROMs (leave empty if using base ROM directory)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="Output Directory" Target="/output"
+		Default="/mnt/user/roms"
+		Mode="rw"
+		Description="Directory where gamelist.xml will be saved. Typically the same as ROM base directory. File will be saved to /output/[SYSTEM]/gamelist.xml"
+		Display="always"
+		Required="true" Mask="false">/mnt/user/roms</Config>
+
+	<Config Type="Path" Name="Media Directory" Target="/media"
+		Default="/mnt/user/roms"
+		Mode="rw"
+		Description="Base directory for downloaded media files. Media will be saved to /media/[SYSTEM]/media/thumbnails and /media/[SYSTEM]/media/images"
+		Display="always"
+		Required="false" Mask="false">/mnt/user/roms</Config>
+
+	<Config Type="Path" Name="Cache Directory" Target="/config/.cache"
+		Default="/mnt/user/appdata/goretro/cache"
+		Mode="rw"
+		Description="Cache directory for ScreenScraper API responses. Speeds up re-runs significantly. System-specific caches are stored in subdirectories."
+		Display="always"
+		Required="true" Mask="false">/mnt/user/appdata/goretro/cache</Config>
+
+	<!-- Output Configuration -->
+	<Config Type="Variable" Name="Output Filename" Target="OUTPUT_FILE"
+		Default="/output/gamelist.xml"
+		Description="Output XML filename. Use default unless you need a custom name."
+		Mask="false"
+		Display="advanced"
+		Required="false">/output/gamelist.xml</Config>
+
+	<!-- Performance Tuning -->
+	<Config Type="Variable" Name="API Delay (ms)" Target="API_DELAY"
+		Default="1000"
+		Description="Delay between API calls in milliseconds. 0 = no delay. 1000-2000ms recommended for free ScreenScraper accounts. Premium accounts can use 500ms."
+		Mask="false"
+		Display="advanced"
+		Required="false">0</Config>
+
+	<Config Type="Variable" Name="Download Workers" Target="DOWNLOAD_WORKERS"
+		Default="8"
+		Description="Number of parallel download workers. 4-8 recommended. Higher values = faster downloads but more bandwidth usage."
+		Mask="false"
+		Display="advanced"
+		Required="false">8</Config>
+
+	<Config Type="Variable" Name="Limit Games" Target="LIMIT"
+		Default="0"
+		Description="Limit number of games to process (0 = no limit). Useful for testing before processing large collections."
+		Mask="false"
+		Display="advanced"
+		Required="false">0</Config>
+
+	<!-- Internal Paths (don't change) -->
+	<Config Type="Variable" Name="ROM Directory (Internal)" Target="ROM_DIR"
+		Default="/roms"
+		Description="Internal container base path for ROMs. Actual path is /roms/[SYSTEM]. DO NOT CHANGE."
+		Mask="false"
+		Display="advanced-hide"
+		Required="false">/roms</Config>
+
+	<Config Type="Variable" Name="Output Directory (Internal)" Target="OUTPUT_DIR"
+		Default="/output"
+		Description="Internal container base path for output. Actual path is /output/[SYSTEM]/gamelist.xml. DO NOT CHANGE."
+		Mask="false"
+		Display="advanced-hide"
+		Required="false">/output</Config>
+
+	<Config Type="Variable" Name="Media Directory (Internal)" Target="MEDIA_DIR"
+		Default="/media"
+		Description="Internal container base path for media. Actual path is /media/[SYSTEM]/media/. DO NOT CHANGE."
+		Mask="false"
+		Display="advanced-hide"
+		Required="false">/media</Config>
+</Container>
