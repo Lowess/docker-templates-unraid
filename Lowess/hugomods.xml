@@ -57,9 +57,9 @@
    <Config Type="Variable" Name="Base URL"
          Target="BASE_URL"
          Default="/"
-         Description="Base URL for Hugo site (used in build). Example: / or /mysite/"
+         Description="Base URL for Hugo site (used in build). Example: / or https://example.com/"
          Mask="false"
-         Display="advanced"
+         Display="always"
          Required="false">/</Config>
 
    <Config Type="Variable" Name="Node Environment"
