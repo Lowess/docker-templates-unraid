@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>HugoMods - Generic Hugo Site</Name>
+  <Repository>hugomods/hugo:exts</Repository>
+  <Registry>https://hub.docker.com/r/hugomods/hugo/</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+
+  <Overview>Generic Hugo website container: clone → npm install → npm run dev. Only requires GIT_REPO.</Overview>
+
+  <Category>MediaApp:Other</Category>
+  <WebUI>http://[IP]:[PORT:1313]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/hugomods.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/hugomods.png</Icon>
+  <Project>https://github.com/Lowess/docker-templates-unraid</Project>
+  <Date>2025-01-04</Date>
+
+  <!-- Override entrypoint so we control startup -->
+  <ExtraParams>--entrypoint=/bin/sh</ExtraParams>
+
+
+  <!-- Port mapping (this is what Unraid uses to publish ports) -->
+  <Config Type="Port" Name="Hugo Dev Server Port"
+          Target="1313"
+          Default="1313"
+          Mode="tcp"
+          Description="Port exposed by the Hugo dev server (must match HUGO_PORT)."
+          Display="always"
+          Required="true">1313</Config>
+
+  <!-- Required: repo -->
+  <Config Type="Variable" Name="Git Repository URL"
+          Target="GIT_REPO"
+          Default="https://github.com/Lowess/hugo-retro.git"
+          Description="Public git repository containing your Hugo website (required)."
+          Mask="false"
+          Display="always"
+          Required="true">https://github.com/Lowess/hugo-retro.git</Config>
+
+  <!-- Optional env: hugo port -->
+  <Config Type="Variable" Name="Hugo Server Port (Env)"
+          Target="HUGO_PORT"
+          Default="1313"
+          Description="Port Hugo should bind to. Must match the exposed container port."
+          Mask="false"
+          Display="advanced"
+          Required="false">1313</Config>
+
+   <Config Type="Variable" Name="Hugo Bind"
+         Target="HUGO_BIND"
+         Default="0.0.0.0"
+         Description="Optional: bind address for Hugo server if your script uses it."
+         Mask="false"
+         Display="advanced"
+         Required="false">0.0.0.0</Config>
+
+   <Config Type="Variable" Name="Base URL"
+         Target="BASE_URL"
+         Default="/"
+         Description="Base URL for Hugo site (used in build). Example: / or /mysite/"
+         Mask="false"
+         Display="advanced"
+         Required="false">/</Config>
+
+   <Config Type="Variable" Name="Node Environment"
+         Target="NODE_ENV"
+         Default="development"
+         Description="Node environment."
+         Mask="false"
+         Display="advanced"
+         Required="false">development</Config>
+
+  <!-- Persistent storage -->
+  <Config Type="Path" Name="Website Source Code"
+          Target="/src"
+          Default="/mnt/user/appdata/hugomods/src"
+          Mode="rw"
+          Description="Persistent Hugo source directory. Repo is cloned here on first start."
+          Display="always"
+          Required="true"
+          Mask="false">/mnt/user/appdata/hugomods/src</Config>
+
+  <Config Type="Path" Name="node_modules Cache"
+          Target="/src/node_modules"
+          Default="/mnt/user/appdata/hugomods/node_modules"
+          Mode="rw"
+          Description="Persist node_modules to avoid reinstalling on every restart."
+          Display="always"
+          Required="true"
+          Mask="false">/mnt/user/appdata/hugomods/node_modules</Config>
+
+  <Config Type="Path" Name="Hugo Config Directory"
+          Target="/src/config"
+          Default="/mnt/user/appdata/hugomods/config"
+          Mode="rw"
+          Description="Hugo configuration directory. Create config/_default/hugo.toml to override settings. See https://gohugo.io/configuration/introduction/#configuration-directory"
+          Display="advanced"
+          Required="false"
+          Mask="false">/mnt/user/appdata/hugomods/config</Config>
+
+   <!-- Startup logic: clone or update repo, install deps, run dev server -->
+   <PostArgs>-c 'set -e; echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; echo "🕹️  Hugo Website Boot"; echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; cd /src; if [ ! -f package.json ]; then echo "📁 First boot - cloning repository"; GR="`printenv GIT_REPO 2>/dev/null || true`"; if [ -z "$GR" ]; then echo "❌ ERROR: GIT_REPO is not set"; exit 1; fi; echo "🔄 Cloning: $GR"; rm -rf /tmp/repo; git clone -b main "$GR" /tmp/repo; mv /tmp/repo/* /tmp/repo/.[!.]* /src/ 2>/dev/null || true; rm -rf /tmp/repo; echo "✅ Repository cloned"; elif [ -d .git ]; then echo "🔄 Updating repository"; git pull || echo "⚠️  Git pull failed, continuing with existing code"; else echo "✅ Source code exists (not a git repo)"; fi; echo "📦 Installing dependencies…"; npm install; echo "🚀 Starting dev server on port ${HUGO_PORT:-1313}…"; exec npm run dev'</PostArgs>
+
+</Container>

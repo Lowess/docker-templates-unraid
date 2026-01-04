@@ -1,0 +1,197 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>Hugo-Website</Name>
+	<Repository>hugomods/hugo:exts</Repository>
+	<Registry>https://hub.docker.com/r/hugomods/hugo/</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/Lowess/docker-templates-unraid/issues</Support>
+	<Overview>
+		Generic Hugo Website - Run any Hugo website with automatic git cloning and npm dependency management.
+	</Overview>
+	<Category>MediaApp:Other</Category>
+	<WebUI>http://[IP]:[PORT:1313]</WebUI>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/hugo-website.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/hugo-retro.png</Icon>
+	<ExtraParams>--entrypoint=/bin/sh</ExtraParams>
+	<Description>
+		Generic Hugo Website container that works with any Hugo repository.
+
+		FEATURES:
+		- Clone and run any Hugo website from git
+		- Automatic npm dependency installation
+		- Development server with hot reload
+		- node_modules caching for fast restarts
+		- Environment variable support for Hugo configuration
+
+		REQUIREMENTS:
+		Your Hugo repository must include an 'entrypoint.sh' script in the root that handles:
+		- Cloning logic (if needed)
+		- npm install
+		- Starting the dev server (hugo serve or npm run dev)
+
+		SETUP:
+		1. Set GIT_REPO to your Hugo website repository URL
+		2. Set GIT_BRANCH if not using 'main'
+		3. Configure HUGO_PORT to match your dev server port
+		4. Optionally set BASE_URL and other Hugo environment variables
+		5. Mount any additional directories your site needs (e.g., content, data)
+
+		The container will download entrypoint.sh from your repository and execute it.
+		Environment variables are passed to your entrypoint for configuration.
+
+		EXAMPLE REPOSITORIES:
+		- https://github.com/Lowess/hugo-retro (retro gaming museum)
+		- Any Hugo site with package.json and entrypoint.sh
+	</Description>
+	<Beta>False</Beta>
+	<Project>https://github.com/Lowess/docker-templates-unraid</Project>
+	<Date>2025-01-04</Date>
+	<Changes>
+		###v1.0.0 (2025-01-04)
+		- Initial release
+		- Generic Hugo website support
+		- Automatic git cloning and npm install
+		- Environment variable configuration
+		- node_modules caching
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+		<Publish>
+			<Port>
+				<HostPort>1313</HostPort>
+				<ContainerPort>1313</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+			<Port>
+				<HostPort>5173</HostPort>
+				<ContainerPort>5173</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+		</Publish>
+	</Networking>
+
+	<!-- Git Repository Configuration -->
+	<Config Type="Variable" Name="Git Repository URL" Target="GIT_REPO"
+		Default=""
+		Description="Git repository URL of your Hugo website (REQUIRED). Example: https://github.com/Lowess/hugo-retro.git"
+		Mask="false"
+		Display="always"
+		Required="true"></Config>
+
+	<Config Type="Variable" Name="Git Branch" Target="GIT_BRANCH"
+		Default="main"
+		Description="Git branch to checkout (main, master, develop, etc.)"
+		Mask="false"
+		Display="always"
+		Required="false">main</Config>
+
+	<!-- Hugo Server Configuration -->
+	<Config Type="Variable" Name="Hugo Server Port" Target="HUGO_PORT"
+		Default="1313"
+		Description="Port for Hugo server. Common values: 1313 (Hugo default), 3001, 8080. Must match your entrypoint.sh configuration."
+		Mask="false"
+		Display="always"
+		Required="false">1313</Config>
+
+	<Config Type="Variable" Name="Base URL" Target="BASE_URL"
+		Default="/"
+		Description="Base URL for Hugo site. Use '/' for root or specify path like '/mysite/'."
+		Mask="false"
+		Display="always"
+		Required="false">/</Config>
+
+	<Config Type="Variable" Name="Hugo Environment" Target="HUGO_ENV"
+		Default="development"
+		Description="Hugo environment (development, production, staging)."
+		Mask="false"
+		Display="advanced"
+		Required="false">development</Config>
+
+	<!-- Path Mappings -->
+	<Config Type="Path" Name="Website Source Code" Target="/src"
+		Default="/mnt/user/appdata/hugo-website/src"
+		Mode="rw"
+		Description="Directory for website source code. Will be auto-populated from git on first start."
+		Display="always"
+		Required="true" Mask="false">/mnt/user/appdata/hugo-website/src</Config>
+
+	<Config Type="Path" Name="node_modules Cache" Target="/src/node_modules"
+		Default="/mnt/user/appdata/hugo-website/node_modules"
+		Mode="rw"
+		Description="Persistent storage for node_modules to avoid reinstalling dependencies on every restart."
+		Display="always"
+		Required="true" Mask="false">/mnt/user/appdata/hugo-website/node_modules</Config>
+
+	<Config Type="Path" Name="Public Output" Target="/src/public"
+		Default="/mnt/user/appdata/hugo-website/public"
+		Mode="rw"
+		Description="Directory for Hugo's built output."
+		Display="advanced"
+		Required="false" Mask="false">/mnt/user/appdata/hugo-website/public</Config>
+
+	<!-- Additional Mounts (Optional - for specific use cases) -->
+	<Config Type="Path" Name="Additional Mount 1" Target="/data1"
+		Default=""
+		Mode="ro"
+		Description="Optional: Additional directory to mount (e.g., for external data, ROMs, etc.)."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="Additional Mount 2" Target="/data2"
+		Default=""
+		Mode="ro"
+		Description="Optional: Additional directory to mount."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<Config Type="Path" Name="Additional Mount 3" Target="/data3"
+		Default=""
+		Mode="ro"
+		Description="Optional: Additional directory to mount."
+		Display="advanced"
+		Required="false" Mask="false"></Config>
+
+	<!-- Environment -->
+	<Config Type="Variable" Name="Node Environment" Target="NODE_ENV"
+		Default="development"
+		Description="Node environment (development or production)."
+		Mask="false"
+		Display="advanced"
+		Required="false">development</Config>
+
+	<Config Type="Variable" Name="PUID" Target="PUID"
+		Default="99"
+		Description="User ID for file permissions. Use 99 for Unraid 'nobody' user."
+		Mask="false"
+		Display="advanced"
+		Required="false">99</Config>
+
+	<Config Type="Variable" Name="PGID" Target="PGID"
+		Default="100"
+		Description="Group ID for file permissions. Use 100 for Unraid 'users' group."
+		Mask="false"
+		Display="advanced"
+		Required="false">100</Config>
+
+	<!-- Custom Environment Variables -->
+	<Config Type="Variable" Name="Custom Variable 1" Target="CUSTOM_VAR1"
+		Default=""
+		Description="Optional: Custom environment variable passed to your entrypoint.sh"
+		Mask="false"
+		Display="advanced"
+		Required="false"></Config>
+
+	<Config Type="Variable" Name="Custom Variable 2" Target="CUSTOM_VAR2"
+		Default=""
+		Description="Optional: Custom environment variable passed to your entrypoint.sh"
+		Mask="false"
+		Display="advanced"
+		Required="false"></Config>
+
+	<!-- Extract repo owner/name and download entrypoint.sh from the same repository -->
+	<PostArgs>-c "if [ -z '$$GIT_REPO' ]; then echo '❌ ERROR: GIT_REPO is required!'; exit 1; fi &amp;&amp; REPO_RAW=$$(echo $$GIT_REPO | sed 's|https://github.com/|https://raw.githubusercontent.com/|' | sed 's|\.git$$||') &amp;&amp; ENTRYPOINT_URL=\"$$REPO_RAW/$${GIT_BRANCH:-main}/entrypoint.sh\" &amp;&amp; echo \"📥 Downloading entrypoint.sh from: $$ENTRYPOINT_URL\" &amp;&amp; wget -q -O /tmp/entrypoint.sh \"$$ENTRYPOINT_URL\" || { echo '❌ Failed to download entrypoint.sh from repository. Ensure entrypoint.sh exists in your repo root.'; exit 1; } &amp;&amp; chmod +x /tmp/entrypoint.sh &amp;&amp; exec /tmp/entrypoint.sh"</PostArgs>
+
+</Container>
