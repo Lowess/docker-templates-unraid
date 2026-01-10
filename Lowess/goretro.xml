@@ -7,28 +7,39 @@
 	<Privileged>false</Privileged>
 	<Support>https://github.com/Lowess/goretro/issues</Support>
 	<Overview>
-		GoRetro - Generate gamelist XML files for retro gaming frontends with metadata scraping from ScreenScraper and media downloads.
+		GoRetro - REST API server for managing retro gaming ROM collections. Generate gamelist XML files, scrape metadata from ScreenScraper, download media, and manage favorites via HTTP API endpoints.
 	</Overview>
 	<Category>Tools:</Category>
-	<WebUI></WebUI>
+	<WebUI>http://[IP]:[PORT:8080]</WebUI>
 	<TemplateURL>
 		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/goretro.xml</TemplateURL>
 	<Icon>
 		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/goretro.png</Icon>
-	<ExtraParams>--restart=no</ExtraParams>
+	<ExtraParams></ExtraParams>
 	<Description>
-		GoRetro generates gamelist.xml files with metadata from ScreenScraper API.
+		GoRetro provides a REST API for managing ROM collections with ScreenScraper integration.
 
-		SIMPLE USAGE:
-		1. Mount your ROMs directory (e.g., /mnt/user/data/media/roms)
-		2. Set SYSTEM to the subdirectory name (e.g., snes, nes, gb)
-		3. Enable scraping and enter ScreenScraper credentials
-		4. Start container - it runs once and stops when complete
+		FEATURES:
+		- Generate gamelist.xml files for any system via API
+		- Scrape individual game metadata
+		- Manage favorite ROMs
+		- Automatic metadata enrichment and media downloads
+		- Smart caching system for faster re-runs
 
-		OUTPUT: Files are written directly to your ROM directory:
-		  /mnt/user/data/media/roms/snes/gamelist.xml
-		  /mnt/user/data/media/roms/snes/media/thumbnails/
-		  /mnt/user/data/media/roms/snes/media/images/
+		API ENDPOINTS:
+		- POST /api/generate/{system} - Generate gamelist for a system
+		- POST /api/scrape - Scrape metadata for a specific game
+		- GET/PUT/DELETE /api/favorites - Manage favorite ROMs
+
+		USAGE:
+		1. Configure your ROM directory and ScreenScraper credentials
+		2. Start the container - it runs a persistent HTTP server
+		3. Access the API at http://[IP]:8080
+		4. Make API calls to generate gamelists, scrape games, or manage favorites
+
+		ENVIRONMENT VARIABLES:
+		All variables set here are used as defaults for API requests. You can override
+		them per-request by including parameters in the API call body.
 
 		Your ROM directory structure should be:
 		  /mnt/user/data/media/roms/
@@ -40,6 +51,14 @@
 	<Project>https://github.com/Lowess/goretro</Project>
 	<Date>2025-01-04</Date>
 	<Changes>
+		###v2.0.0 (2025-01-10)
+		- NEW: HTTP API server mode (goretro serve)
+		- NEW: REST endpoints for generate, scrape, and favorites
+		- NEW: Persistent favorites management
+		- Environment variables now serve as API defaults
+		- Container runs as persistent service instead of one-time execution
+		- Access API at http://[IP]:8080
+
 		###v1.1.0 (2025-01-04)
 		- Simplified path structure - single mount point
 		- Fixed media path duplication issue
@@ -57,27 +76,86 @@
 		<Mode>bridge</Mode>
 	</Networking>
 
-	<!-- System Configuration -->
-	<Config Type="Variable" Name="System Name" Target="SYSTEM"
+	<!-- Server Configuration -->
+	<Config Type="Port" Name="API Server Port"
+		Target="8080"
+		Default="8080"
+		Mode="tcp"
+		Description="Port for the GoRetro HTTP API server. Access API at http://[IP]:[PORT]"
+		Display="always"
+		Required="true">8080</Config>
+
+	<Config Type="Variable" Name="Server Port" Target="GORETRO_PORT"
+		Default="8080"
+		Description="Internal server port (should match the port mapping above)."
+		Mask="false"
+		Display="advanced"
+		Required="false">8080</Config>
+
+	<Config Type="Variable" Name="Bind Address" Target="GORETRO_BIND_ADDRESS"
+		Default="0.0.0.0"
+		Description="Server bind address. Use 0.0.0.0 to allow external connections."
+		Mask="false"
+		Display="advanced"
+		Required="false">0.0.0.0</Config>
+
+	<!-- Default API Settings (used as defaults for /api/generate) -->
+	<Config Type="Variable" Name="Default: Enable Scraping" Target="SERVER_ENABLE_SCRAPING"
+		Default="true"
+		Description="Default setting for metadata scraping. API requests can override this."
+		Mask="false"
+		Display="always"
+		Required="false">true</Config>
+
+	<Config Type="Variable" Name="Default: Download Media" Target="SERVER_DOWNLOAD_MEDIA"
+		Default="true"
+		Description="Default setting for media downloads. API requests can override this."
+		Mask="false"
+		Display="always"
+		Required="false">true</Config>
+
+	<Config Type="Variable" Name="Default: Media Directory" Target="SERVER_MEDIA_DIR"
+		Default="./media/"
+		Description="Default media directory path (relative to ROM directory). API requests can override this."
+		Mask="false"
+		Display="advanced"
+		Required="false">./media/</Config>
+
+	<Config Type="Variable" Name="Default: Output File" Target="SERVER_OUTPUT_FILE"
+		Default="gamelist.xml"
+		Description="Default output filename. API requests can override this."
+		Mask="false"
+		Display="advanced"
+		Required="false">gamelist.xml</Config>
+
+	<Config Type="Variable" Name="Default: Game Limit" Target="SERVER_LIMIT"
+		Default="0"
+		Description="Default limit for games to process (0 = unlimited). API requests can override this."
+		Mask="false"
+		Display="advanced"
+		Required="false">0</Config>
+
+	<Config Type="Variable" Name="Default: API Delay (ms)" Target="SERVER_API_DELAY"
+		Default="0"
+		Description="Default delay between ScreenScraper API calls in milliseconds. 1000-2000ms for free accounts, 500ms for premium."
+		Mask="false"
+		Display="advanced"
+		Required="false">0</Config>
+
+	<Config Type="Variable" Name="Default: Download Workers" Target="SERVER_DOWNLOAD_WORKERS"
+		Default="4"
+		Description="Default number of parallel download workers. 4-8 recommended."
+		Mask="false"
+		Display="advanced"
+		Required="false">4</Config>
+
+	<!-- System Configuration (kept for backward compatibility) -->
+	<Config Type="Variable" Name="System Name (Legacy)" Target="SYSTEM"
 		Default="snes"
-		Description="System subdirectory name in your ROM directory (e.g., snes, nes, gb, gba, genesis, psx, n64). REQUIRED. Common systems: snes, nes, gb, gba, genesis, psx, n64, atari2600, arcade."
+		Description="LEGACY: System name used in old single-run mode. In API mode, specify system in the API endpoint path instead."
 		Mask="false"
-		Display="always"
-		Required="true">snes</Config>
-
-	<Config Type="Variable" Name="Enable Scraping" Target="ENABLE_SCRAPE"
-		Default="true"
-		Description="Enable metadata scraping from ScreenScraper API. Set to false to only generate basic gamelist.xml from ROM files."
-		Mask="false"
-		Display="always"
-		Required="false">true</Config>
-
-	<Config Type="Variable" Name="Download Media" Target="DOWNLOAD_MEDIA"
-		Default="true"
-		Description="Download media files (thumbnails and images) from ScreenScraper. Requires scraping to be enabled."
-		Mask="false"
-		Display="always"
-		Required="false">true</Config>
+		Display="advanced"
+		Required="false">snes</Config>
 
 	<!-- ScreenScraper Credentials (Required for scraping) -->
 	<Config Type="Variable" Name="ScreenScraper User ID" Target="SCREENSCRAPER_USER_ID"
@@ -109,11 +187,11 @@
 		Required="false"></Config>
 
 	<Config Type="Variable" Name="ScreenScraper Software Name" Target="SCREENSCRAPER_SOFT_NAME"
-		Default="GoRetro-1.1"
+		Default="Emulationstation-Recalbox-8.0"
 		Description="Software name for API identification."
 		Mask="false"
 		Display="advanced"
-		Required="false">GoRetro-1.1</Config>
+		Required="false">Emulationstation-Recalbox-8.0</Config>
 
 	<Config Type="Variable" Name="Skip TLS Verification" Target="SCREENSCRAPER_INSECURE_SKIP_TLS"
 		Default="false"
@@ -122,62 +200,32 @@
 		Display="advanced"
 		Required="false">false</Config>
 
-	<!-- Path Mappings - SIMPLIFIED -->
+	<!-- Path Mappings -->
 	<Config Type="Path" Name="ROM Directory" Target="/roms"
 		Default="/mnt/user/data/media/roms"
 		Mode="rw"
-		Description="Base ROM directory containing system subdirectories (snes/, nes/, etc.). GoRetro will read ROMs from /roms/[SYSTEM]/ and write gamelist.xml and media back to the same location."
+		Description="Base ROM directory containing system subdirectories (snes/, nes/, etc.). API calls specify the system, and GoRetro will read ROMs from /roms/[SYSTEM]/ and write gamelist.xml and media to the same location."
 		Display="always"
 		Required="true" Mask="false">/mnt/user/data/media/roms</Config>
+
+	<Config Type="Path" Name="Config Directory" Target="/config"
+		Default="/mnt/user/appdata/goretro"
+		Mode="rw"
+		Description="GoRetro configuration and data directory. Contains favorites.yaml and cache subdirectory."
+		Display="always"
+		Required="true" Mask="false">/mnt/user/appdata/goretro</Config>
 
 	<Config Type="Path" Name="Cache Directory" Target="/config/.cache"
 		Default="/mnt/user/appdata/goretro/cache"
 		Mode="rw"
 		Description="Cache directory for ScreenScraper API responses. Dramatically speeds up re-runs. One cache file per ROM."
-		Display="always"
+		Display="advanced"
 		Required="true" Mask="false">/mnt/user/appdata/goretro/cache</Config>
 
-	<!-- Performance Tuning -->
-	<Config Type="Variable" Name="API Delay (ms)" Target="API_DELAY"
-		Default="1000"
-		Description="Delay between API calls in milliseconds. Recommended: 1000-2000ms for free accounts, 500ms for premium ScreenScraper accounts."
-		Mask="false"
+	<Config Type="Path" Name="Favorites File" Target="/config/favorites.yaml"
+		Default="/mnt/user/appdata/goretro/favorites.yaml"
+		Mode="rw"
+		Description="Favorites database file. Managed via /api/favorites endpoints."
 		Display="advanced"
-		Required="false">1000</Config>
-
-	<Config Type="Variable" Name="Download Workers" Target="DOWNLOAD_WORKERS"
-		Default="8"
-		Description="Number of parallel download workers for media files. 4-8 recommended. Higher = faster but more bandwidth."
-		Mask="false"
-		Display="advanced"
-		Required="false">8</Config>
-
-	<Config Type="Variable" Name="Limit Games" Target="LIMIT"
-		Default="0"
-		Description="Limit number of games to process (0 = no limit). Useful for testing with 5-10 games before processing entire collection."
-		Mask="false"
-		Display="advanced"
-		Required="false">0</Config>
-
-	<!-- Output paths - Leave empty to auto-construct based on SYSTEM -->
-	<Config Type="Variable" Name="Output File" Target="OUTPUT_FILE"
-		Default=""
-		Description="Output gamelist.xml path. Leave empty to auto-construct as /roms/[SYSTEM]/gamelist.xml"
-		Mask="false"
-		Display="advanced"
-		Required="false"></Config>
-
-	<Config Type="Variable" Name="ROM Directory (Internal)" Target="ROM_DIR"
-		Default=""
-		Description="Internal ROM path. Leave empty to auto-construct as /roms/[SYSTEM]"
-		Mask="false"
-		Display="advanced"
-		Required="false"></Config>
-
-	<Config Type="Variable" Name="Media Directory (Internal)" Target="MEDIA_DIR"
-		Default=""
-		Description="Internal media output path. Leave empty to auto-construct as /roms/[SYSTEM]/media"
-		Mask="false"
-		Display="advanced"
-		Required="false"></Config>
+		Required="false" Mask="false">/mnt/user/appdata/goretro/favorites.yaml</Config>
 </Container>
