@@ -26,11 +26,19 @@
 		- Manage favorite ROMs
 		- Automatic metadata enrichment and media downloads
 		- Smart caching system for faster re-runs
+		- Optional API key authentication
 
 		API ENDPOINTS:
 		- POST /api/generate/{system} - Generate gamelist (no request body needed!)
 		- POST /api/scrape - Scrape metadata for a specific game
 		- GET/PUT/DELETE /api/favorites - Manage favorite ROMs
+
+		SECURITY (OPTIONAL):
+		To secure your API with authentication, set the GORETRO_API_KEY variable:
+		1. Generate a key: openssl rand -hex 32
+		2. Add it to the API Key field in Unraid template
+		3. Include in requests: curl -H "X-API-Key: your-key" ...
+		Leave blank to disable authentication (default).
 
 		CONFIGURATION:
 		GoRetro uses a config.yaml file located at:
@@ -70,8 +78,15 @@
 	</Description>
 	<Beta>False</Beta>
 	<Project>https://github.com/Lowess/goretro</Project>
-	<Date>2025-01-04</Date>
+	<Date>2025-01-25</Date>
 	<Changes>
+		###v2.2.0 (2025-01-25)
+		- NEW: Optional API key authentication for securing endpoints
+		- NEW: GORETRO_API_KEY environment variable for easy setup
+		- FIX: favorites_file from config.yaml now properly honored
+		- FIX: Server can start without ScreenScraper credentials (useful for favorites-only use)
+		- IMPROVED: Config loading more robust and flexible
+
 		###v2.1.0 (2025-01-11)
 		- NEW: Configuration via config.yaml file (cleaner than env vars)
 		- NEW: rom_dir is now optional - defaults to /roms/{system}
@@ -129,4 +144,12 @@
 		Description="Configuration directory. Contains config.yaml (edit this!), favorites.yaml, and .cache/ subdirectory. Copy config.yaml.example to config.yaml on first run."
 		Display="always"
 		Required="true" Mask="false">/mnt/user/appdata/goretro</Config>
+
+	<!-- Security Configuration -->
+	<Config Type="Variable" Name="API Key" Target="GORETRO_API_KEY"
+		Default=""
+		Mode=""
+		Description="Optional API key for authentication. When set, all API requests must include this key via X-API-Key header or Authorization: Bearer header. Generate with: openssl rand -hex 32. Leave empty to disable authentication."
+		Display="always-hide"
+		Required="false" Mask="true"></Config>
 </Container>
