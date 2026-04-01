@@ -84,8 +84,11 @@
 		- NEW: Optional API key authentication for securing endpoints
 		- NEW: GORETRO_API_KEY environment variable for easy setup
 		- FIX: favorites_file from config.yaml now properly honored
+		- FIX: Favorites with trailing whitespace now correctly match ROM names
+		- FIX: &lt;favorite&gt; tags now appear in generated gamelist.xml
 		- FIX: Server can start without ScreenScraper credentials (useful for favorites-only use)
 		- IMPROVED: Config loading more robust and flexible
+		- IMPROVED: All favorites operations now trim whitespace automatically
 
 		###v2.1.0 (2025-01-11)
 		- NEW: Configuration via config.yaml file (cleaner than env vars)

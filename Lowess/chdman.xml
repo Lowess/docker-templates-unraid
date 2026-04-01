@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>CHDMan</Name>
+	<Repository>lowess/chdman-walker</Repository>
+	<Registry>https://hub.docker.com/r/lowess/chdman-walker/</Registry>
+	<Network>none</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/Lowess/chdman-walker/issues</Support>
+	<Overview>
+		Docker CHD "Compressed Hunks of Data" Converter. Compresses GDI, ISO, BIN and CUE files to CHD using CHDMAN from MAME Tools. Skips existing .chd files and does not modify source files.
+	</Overview>
+	<Category>Tools:</Category>
+	<WebUI></WebUI>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/chdman.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/chdman.png</Icon>
+	<ExtraParams></ExtraParams>
+	<PostArgs></PostArgs>
+	<Description>
+		CHDMan converts disc images to CHD (Compressed Hunks of Data) format using CHDMAN from MAME Tools.
+
+		SUPPORTED INPUT FORMATS:
+		- GDI (Sega Dreamcast)
+		- ISO
+		- BIN/CUE (CD images)
+
+		MODES (set via CHDMAN_MODE):
+		- createcd  (default) - Convert GDI/ISO/BIN/CUE → CHD (CD-based consoles: PS1, Dreamcast, etc.)
+		- createdvd - Convert ISO → CHD (DVD-based systems: PSP, PS2, etc.)
+		- extractcd - Extract CHD → ISO (CD)
+		- extractdvd - Extract CHD → ISO (DVD)
+
+		USAGE:
+		1. Place your disc image files in the Images folder.
+		2. Select the appropriate CHDMAN_MODE for your use case.
+		3. Start the container — it will process all eligible files and exit.
+		4. Converted .chd files (or .iso for extract modes) appear in the same folder.
+
+		NOTES:
+		- Existing .chd files are skipped automatically (safe to re-run).
+		- Source files are never modified or deleted.
+		- Use createdvd for PSP (UMD) games — createcd will not produce correct results.
+		- The container exits automatically when conversion is complete.
+	</Description>
+	<Beta>False</Beta>
+	<Project>https://github.com/Lowess/chdman-walker</Project>
+	<Date>2026-04-01</Date>
+	<Changes>
+		###v1.0.0 (2026-04-01)
+		- Initial Unraid template using lowess/chdman-walker
+		- Recursive directory walking for batch conversions
+		- Supports createcd, createdvd, extractcd, extractdvd modes
+	</Changes>
+	<Networking>
+		<Mode>none</Mode>
+	</Networking>
+
+	<!-- Path Mappings -->
+	<Config Type="Path" Name="Images Directory" Target="/input"
+		Default="/mnt/user/data/media/roms"
+		Mode="rw"
+		Description="Directory containing your source disc images (GDI, ISO, BIN, CUE) for conversion, or your CHD files for extraction. Converted files are written to the same directory."
+		Display="always"
+		Required="true" Mask="false">/mnt/user/data/media/roms</Config>
+
+	<!-- Conversion Mode -->
+	<Config Type="Variable" Name="Conversion Mode" Target="CHDMAN_MODE"
+		Default="createcd"
+		Mode=""
+		Description="Conversion mode. Options: createcd (default, for CD-based systems like PS1/Dreamcast), createdvd (for DVD-based systems like PSP/PS2), extractcd (CHD → ISO for CD), extractdvd (CHD → ISO for DVD)."
+		Display="always"
+		Required="false" Mask="false">createcd</Config>
+</Container>
