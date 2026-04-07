@@ -1,0 +1,199 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>OPNsense-Exporter</Name>
+	<Repository>ghcr.io/athennamind/opnsense-exporter</Repository>
+	<Registry>https://github.com/AthennaMind/opnsense-exporter/pkgs/container/opnsense-exporter</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/AthennaMind/opnsense-exporter/issues</Support>
+	<Overview>
+		OPNsense Exporter - Prometheus exporter for OPNsense firewalls. Collects and exposes metrics from OPNsense via its REST API, including ARP tables, DNS (Unbound), WireGuard, OpenVPN, IPsec, firewall statistics, and firmware information.
+	</Overview>
+	<Category>Network:Management Tools:</Category>
+	<WebUI>http://[IP]:[PORT:8080]/metrics</WebUI>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/opnsense-exporter.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/opnsense-exporter.png</Icon>
+	<ExtraParams></ExtraParams>
+	<PostArgs></PostArgs>
+	<Description>
+		OPNsense Exporter is a Prometheus exporter that collects metrics from OPNsense firewalls remotely via their REST API. No local installation on the firewall is required.
+
+		FEATURES:
+		- ARP table metrics
+		- DNS / Unbound statistics (enable Extended Statistics in OPNsense for full data)
+		- VPN: WireGuard, OpenVPN, IPsec
+		- Firewall statistics
+		- Firmware information
+		- Cron task metrics
+		- Grafana dashboard available at grafana.com/dashboards/21113
+
+		SETUP:
+		1. In OPNsense, create a dedicated API user:
+		   System &gt; Access &gt; Users &gt; Add user
+		   Assign the "Readonly API" privilege (or a custom role with read access).
+		2. Generate an API key + secret for that user.
+		3. Enter the OPNsense address, protocol, API key, and API secret below.
+		4. Optionally disable subsystems you do not use to reduce API load.
+
+		For full Unbound DNS metrics:
+		  Services &gt; Unbound DNS &gt; Advanced &gt; Enable Extended Statistics
+
+		PROMETHEUS SCRAPE CONFIG:
+		  - job_name: opnsense
+		    static_configs:
+		      - targets: ['[IP]:8080']
+	</Description>
+	<Beta>False</Beta>
+	<Project>https://github.com/AthennaMind/opnsense-exporter</Project>
+	<Date>2026-04-07</Date>
+	<Changes>
+		###v1.0.0 (2026-04-07)
+		- Initial Unraid template release
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+	</Networking>
+
+	<!-- Port -->
+	<Config Type="Port" Name="Metrics Port"
+		Target="8080"
+		Default="8080"
+		Mode="tcp"
+		Description="Port on which the /metrics endpoint is exposed for Prometheus scraping."
+		Display="always"
+		Required="true">8080</Config>
+
+	<!-- OPNsense Connection -->
+	<Config Type="Variable" Name="OPNsense Protocol"
+		Target="OPNSENSE_EXPORTER_OPS_PROTOCOL"
+		Default="https"
+		Mode=""
+		Description="Protocol used to reach the OPNsense API. Use 'https' (recommended) or 'http'."
+		Display="always"
+		Required="true" Mask="false">https</Config>
+
+	<Config Type="Variable" Name="OPNsense Address"
+		Target="OPNSENSE_EXPORTER_OPS_API"
+		Default=""
+		Mode=""
+		Description="Hostname or IP address of the OPNsense firewall (e.g. 192.168.1.1 or opnsense.lan). Do NOT include the protocol prefix."
+		Display="always"
+		Required="true" Mask="false"></Config>
+
+	<Config Type="Variable" Name="OPNsense API Key"
+		Target="OPNSENSE_EXPORTER_OPS_API_KEY"
+		Default=""
+		Mode=""
+		Description="API key generated for the read-only OPNsense user (System > Access > Users)."
+		Display="always"
+		Required="true" Mask="true"></Config>
+
+	<Config Type="Variable" Name="OPNsense API Secret"
+		Target="OPNSENSE_EXPORTER_OPS_API_SECRET"
+		Default=""
+		Mode=""
+		Description="API secret generated for the read-only OPNsense user (System > Access > Users)."
+		Display="always"
+		Required="true" Mask="true"></Config>
+
+	<Config Type="Variable" Name="Skip TLS Verification"
+		Target="OPNSENSE_EXPORTER_OPS_INSECURE"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable TLS certificate verification (useful for self-signed certs). Not recommended in production."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<!-- Instance Label -->
+	<Config Type="Variable" Name="Instance Label"
+		Target="OPNSENSE_EXPORTER_INSTANCE_LABEL"
+		Default="opnsense"
+		Mode=""
+		Description="Label added to all metrics to identify this OPNsense instance. Useful when scraping multiple firewalls."
+		Display="always"
+		Required="false" Mask="false">opnsense</Config>
+
+	<!-- Logging -->
+	<Config Type="Variable" Name="Log Level"
+		Target="OPNSENSE_EXPORTER_LOG_LEVEL"
+		Default="info"
+		Mode=""
+		Description="Log verbosity. Options: debug, info, warn, error."
+		Display="advanced"
+		Required="false" Mask="false">info</Config>
+
+	<!-- Feature Toggles -->
+	<Config Type="Variable" Name="Disable ARP Table"
+		Target="OPNSENSE_EXPORTER_DISABLE_ARP_TABLE"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable ARP table metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable Unbound DNS"
+		Target="OPNSENSE_EXPORTER_DISABLE_UNBOUND"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable Unbound DNS metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable WireGuard"
+		Target="OPNSENSE_EXPORTER_DISABLE_WIREGUARD"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable WireGuard VPN metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable OpenVPN"
+		Target="OPNSENSE_EXPORTER_DISABLE_OPENVPN"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable OpenVPN metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable IPsec"
+		Target="OPNSENSE_EXPORTER_DISABLE_IPSEC"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable IPsec VPN metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable Firewall"
+		Target="OPNSENSE_EXPORTER_DISABLE_FIREWALL"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable firewall statistics metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable Firmware"
+		Target="OPNSENSE_EXPORTER_DISABLE_FIRMWARE"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable firmware information metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable Cron Table"
+		Target="OPNSENSE_EXPORTER_DISABLE_CRON_TABLE"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to disable cron task metric collection."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Disable Exporter Metrics"
+		Target="OPNSENSE_EXPORTER_DISABLE_EXPORTER_METRICS"
+		Default="false"
+		Mode=""
+		Description="Set to 'true' to exclude internal Go/process metrics from the /metrics output."
+		Display="advanced"
+		Required="false" Mask="false">false</Config>
+</Container>
