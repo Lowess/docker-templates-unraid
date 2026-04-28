@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <Container version="2">
 	<Name>ygege</Name>
-	<Repository>ghcr.io/djerayane/ygege:docker-publish</Repository>
-	<Registry>https://github.com/djerayane/ygege/pkgs/container/ygege</Registry>
+	<Repository>uwucode/ygege:latest</Repository>
+	<Registry>https://hub.docker.com/r/uwucode/ygege</Registry>
 	<Network>wg0</Network>
 	<Privileged>false</Privileged>
-	<Support>https://github.com/djerayane/ygege/issues</Support>
+	<Support>https://github.com/UwUDev/ygege/issues</Support>
 	<Overview>
 		Ygege - high-performance public YGG indexer relay for Prowlarr and Jackett.
 	</Overview>
@@ -37,12 +37,15 @@
 		  - http://192.168.1.10:8715/
 
 		Official Prowlarr definition:
-		https://raw.githubusercontent.com/djerayane/ygege/develop/ygege.yml
+		https://raw.githubusercontent.com/UwUDev/ygege/master/ygege.yml
 	</Description>
 	<Beta>False</Beta>
-	<Project>https://github.com/djerayane/ygege</Project>
+	<Project>https://github.com/UwUDev/ygege</Project>
 	<Date>2026-04-28</Date>
 	<Changes>
+		###v1.0.1 (2026-04-28)
+		- Switch default image to the upstream uwucode/ygege:latest Docker image.
+
 		###v1.0.0 (2026-04-28)
 		- Initial Unraid template release
 	</Changes>
