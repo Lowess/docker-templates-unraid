@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>ygege</Name>
+	<Repository>ghcr.io/djerayane/ygege:docker-publish</Repository>
+	<Registry>https://github.com/djerayane/ygege/pkgs/container/ygege</Registry>
+	<Network>wg0</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/djerayane/ygege/issues</Support>
+	<Overview>
+		Ygege - high-performance public YGG indexer relay for Prowlarr and Jackett.
+	</Overview>
+	<Category>Downloaders: Network:Web Tools:</Category>
+	<WebUI>http://[IP]:[PORT:8715]</WebUI>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/ygege.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/ygege.webp</Icon>
+	<ExtraParams></ExtraParams>
+	<PostArgs></PostArgs>
+	<Description>
+		Ygege exposes a local HTTP relay used by Prowlarr or Jackett custom definitions for ygg.gratis / YGG.
+
+		PROWLARR SETUP:
+		1. Install this container and keep the container name as "ygege".
+		2. In Prowlarr, find the AppData path from System &gt; Status.
+		3. Copy the upstream ygege.yml definition to:
+		   {Prowlarr AppData}/Definitions/Custom/ygege.yml
+		   You may need to create the Custom folder.
+		4. Restart Prowlarr.
+		5. Add the "ygege" indexer from the normal Prowlarr indexer flow.
+
+		NETWORKING:
+		This template defaults to the wg0 Docker network.
+		The upstream definition includes http://localhost:8715/ and http://ygege:8715/ by default.
+		If Prowlarr is not on the same Docker network as this container, add your Unraid server URL to the
+		links section of ygege.yml, for example:
+		  - http://192.168.1.10:8715/
+
+		Official Prowlarr definition:
+		https://raw.githubusercontent.com/djerayane/ygege/develop/ygege.yml
+	</Description>
+	<Beta>False</Beta>
+	<Project>https://github.com/djerayane/ygege</Project>
+	<Date>2026-04-28</Date>
+	<Changes>
+		###v1.0.0 (2026-04-28)
+		- Initial Unraid template release
+	</Changes>
+	<Networking>
+		<Mode>wg0</Mode>
+		<Publish>
+			<Port>
+				<HostPort>8715</HostPort>
+				<ContainerPort>8715</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+		</Publish>
+	</Networking>
+
+	<!-- Port -->
+	<Config Type="Port" Name="Web/API Port"
+		Target="8715"
+		Default="8715"
+		Mode="tcp"
+		Description="Port used by Prowlarr or Jackett to reach the ygege relay."
+		Display="always"
+		Required="true"
+		Mask="false">8715</Config>
+
+	<!-- Server Configuration -->
+	<Config Type="Variable" Name="Bind IP"
+		Target="BIND_IP"
+		Default="0.0.0.0"
+		Mode=""
+		Description="Address the ygege service listens on inside the container. Keep 0.0.0.0 for Docker/Unraid access."
+		Display="advanced"
+		Required="true"
+		Mask="false">0.0.0.0</Config>
+
+	<Config Type="Variable" Name="Bind Port"
+		Target="BIND_PORT"
+		Default="8715"
+		Mode=""
+		Description="Port the ygege service listens on inside the container. Keep this aligned with the container port mapping."
+		Display="advanced"
+		Required="true"
+		Mask="false">8715</Config>
+
+	<Config Type="Variable" Name="Log Level"
+		Target="LOG_LEVEL"
+		Default="info"
+		Mode=""
+		Description="Log verbosity. Common values: debug, info, warn, error."
+		Display="advanced"
+		Required="false"
+		Mask="false">info</Config>
+</Container>
