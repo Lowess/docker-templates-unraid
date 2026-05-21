@@ -1,0 +1,235 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>Crema</Name>
+	<Repository>lowess/crema:latest</Repository>
+	<Registry>https://hub.docker.com/r/lowess/crema</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/Aurel-Charles/crema/issues</Support>
+	<Overview>
+		Crema is a small Node.js LAN messenger for always-on displays. It serves a PWA, a display view, settings, history, and logs over HTTP.
+	</Overview>
+	<Category>Network:Web Tools:</Category>
+	<WebUI>http://[IP]:[PORT:3000]</WebUI>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/crema.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/crema.png</Icon>
+	<ExtraParams></ExtraParams>
+	<PostArgs></PostArgs>
+	<Description>
+		Crema runs a peer/PWA Node.js service for sending short LAN messages between devices.
+
+		WEB UI:
+		- PWA sender: http://[IP]:[PORT:3000]/
+		- Display view: http://[IP]:[PORT:3000]/display
+		- Settings: http://[IP]:[PORT:3000]/settings
+		- History: http://[IP]:[PORT:3000]/history
+		- Logs: http://[IP]:[PORT:3000]/logs
+
+		DOCKER NETWORKING:
+		Crema's native peer-to-peer mode uses mDNS/.local discovery, which is fragile from Docker.
+		This template runs Crema's lightweight broker inside the same container and points the app at
+		ws://127.0.0.1:4000, so Docker does not need to resolve .local names.
+
+		TRANSPORT:
+		The default transport is broker mode. Other Crema peers can use this container as their broker
+		by setting their Broker URL to ws://&lt;unraid-ip&gt;:4000, or to whatever host port you map for
+		the broker.
+
+		OTHER PEERS:
+		Crema in broker mode does not discover peers with .local/mDNS. Aurel/Flo/other devices must
+		connect to this broker explicitly:
+		  CREMA_TRANSPORT=broker
+		  CREMA_BROKER_URL=ws://&lt;unraid-ip&gt;:4000
+		Use the Unraid server LAN IP here, not 127.0.0.1.
+
+		BROKER ADVERTISEMENT:
+		CREMA_BROKER_ADVERTISE=0 disables mDNS advertisement of the broker itself. Keep it disabled
+		for Docker. Set it to 1 only if you deliberately want _crema-broker._tcp mDNS advertisement
+		and your Docker host has working Avahi/mDNS support.
+
+		P2P ADDRESS RESOLUTION:
+		When p2p/dual mode is enabled, CREMA_MDNS_RESOLVE_ADDRESSES=1 tells Crema to use IPv4
+		addresses returned by mDNS instead of depending on .local hostname resolution inside Docker.
+
+		PERSISTENCE:
+		Runtime state is stored in /app/data and should be mapped to appdata. This includes replies,
+		shortcuts, Do Not Disturb state, history.db, and event logs.
+
+		PERMISSIONS:
+		The container entrypoint fixes ownership of /app/data, then runs Crema as the upstream node user
+		(UID 1000 / GID 1000). This prevents SQLite startup failures when Unraid creates the appdata
+		directory as root on first install.
+	</Description>
+	<Beta>False</Beta>
+	<Project>https://github.com/Aurel-Charles/crema</Project>
+	<Date>2026-05-21</Date>
+	<Changes>
+		###v1.3.4 (2026-05-21)
+		- Add mDNS address resolution setting for p2p/dual deployments.
+
+		###v1.3.3 (2026-05-21)
+		- Clarify broker advertisement and peer setup for Docker broker mode.
+
+		###v1.3.2 (2026-05-21)
+		- Keep embedded broker mode broker-only by default to prevent Docker from starting p2p/mDNS discovery.
+
+		###v1.3.1 (2026-05-21)
+		- Use a PNG conversion of the upstream SVG icon so the Unraid Docker tab renders it correctly.
+
+		###v1.3.0 (2026-05-21)
+		- Use Crema's built-in embedded broker mode from the Docker image.
+		- Remove template-level shell process control.
+
+		###v1.2.0 (2026-05-21)
+		- Run Crema's broker inside the same container instead of requiring a separate app.
+		- Switch back to bridge networking and publish both the web and broker ports.
+
+		###v1.1.0 (2026-05-21)
+		- Default to broker transport for Docker-friendly networking.
+		- Add a pinned broker URL setting to avoid .local/mDNS resolution inside the container.
+
+		###v1.0.1 (2026-05-21)
+		- Fix appdata ownership at startup before running Crema as node.
+
+		###v1.0.0 (2026-05-21)
+		- Initial Unraid template release.
+		- Uses the upstream Crema icon from public/icon.svg.
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+		<Publish>
+			<Port>
+				<HostPort>3000</HostPort>
+				<ContainerPort>3000</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+			<Port>
+				<HostPort>4000</HostPort>
+				<ContainerPort>4000</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+		</Publish>
+	</Networking>
+
+	<!-- Port -->
+	<Config Type="Port" Name="Web/PWA Port"
+		Target="3000"
+		Default="3000"
+		Mode="tcp"
+		Description="Port used to access the Crema PWA, display, settings, history, and logs."
+		Display="always"
+		Required="true"
+		Mask="false">3000</Config>
+
+	<Config Type="Port" Name="Embedded Broker Port"
+		Target="4000"
+		Default="4000"
+		Mode="tcp"
+		Description="Socket.IO broker port. Other Crema peers can connect to ws://&lt;unraid-ip&gt;:[PORT]."
+		Display="always"
+		Required="true"
+		Mask="false">4000</Config>
+
+	<!-- Path Mappings -->
+	<Config Type="Path" Name="Data Directory"
+		Target="/app/data"
+		Default="/mnt/user/appdata/crema"
+		Mode="rw"
+		Description="Persistent Crema runtime state: replies, shortcuts, Do Not Disturb state, history database, and event logs."
+		Display="always"
+		Required="true"
+		Mask="false">/mnt/user/appdata/crema</Config>
+
+	<!-- Server Configuration -->
+	<Config Type="Variable" Name="Owner Name"
+		Target="CREMA_OWNER"
+		Default="Unraid"
+		Mode=""
+		Description="Display name for this Crema instance. Set a unique owner name for each peer."
+		Display="always"
+		Required="true"
+		Mask="false">Unraid</Config>
+
+	<Config Type="Variable" Name="Transport"
+		Target="CREMA_TRANSPORT"
+		Default="broker"
+		Mode=""
+		Description="Transport mode: broker, dual, or p2p. Broker is recommended for Docker because it avoids .local/mDNS peer resolution."
+		Display="advanced"
+		Required="true"
+		Mask="false">broker</Config>
+
+	<Config Type="Variable" Name="Embed Broker"
+		Target="CREMA_EMBED_BROKER"
+		Default="1"
+		Mode=""
+		Description="Start Crema's lightweight broker inside this container."
+		Display="advanced"
+		Required="true"
+		Mask="false">1</Config>
+
+	<Config Type="Variable" Name="Broker URL"
+		Target="CREMA_BROKER_URL"
+		Default="ws://127.0.0.1:4000"
+		Mode=""
+		Description="Socket.IO broker URL used by this Crema app. Keep ws://127.0.0.1:4000 to use the embedded broker."
+		Display="advanced"
+		Required="true"
+		Mask="false">ws://127.0.0.1:4000</Config>
+
+	<Config Type="Variable" Name="Advertise Broker via mDNS"
+		Target="CREMA_BROKER_ADVERTISE"
+		Default="0"
+		Mode=""
+		Description="Advertise this broker as _crema-broker._tcp via mDNS. Keep 0 for Docker and set other peers to ws://&lt;unraid-ip&gt;:4000 explicitly."
+		Display="advanced"
+		Required="true"
+		Mask="false">0</Config>
+
+	<Config Type="Variable" Name="Allow P2P with Embedded Broker"
+		Target="CREMA_ALLOW_P2P_IN_EMBEDDED_BROKER"
+		Default="0"
+		Mode=""
+		Description="Set to 1 only if you want embedded-broker containers to use dual/p2p mDNS discovery. Keep 0 for Docker."
+		Display="advanced"
+		Required="true"
+		Mask="false">0</Config>
+
+	<Config Type="Variable" Name="Resolve mDNS Addresses"
+		Target="CREMA_MDNS_RESOLVE_ADDRESSES"
+		Default="1"
+		Mode=""
+		Description="In p2p/dual mode, prefer IPv4 addresses returned by mDNS over .local hostnames. Set to 0 to use hostname-only mDNS resolution."
+		Display="advanced"
+		Required="true"
+		Mask="false">1</Config>
+
+	<Config Type="Variable" Name="Broker Token"
+		Target="CREMA_BROKER_TOKEN"
+		Default=""
+		Mode=""
+		Description="Optional shared token. Must match the Crema Broker token when broker authentication is enabled."
+		Display="always-hide"
+		Required="false"
+		Mask="true"></Config>
+
+	<Config Type="Variable" Name="Latitude"
+		Target="CREMA_LAT"
+		Default="49.8941"
+		Mode=""
+		Description="Latitude used for the display day/night theme schedule."
+		Display="advanced"
+		Required="false"
+		Mask="false">49.8941</Config>
+
+	<Config Type="Variable" Name="Longitude"
+		Target="CREMA_LON"
+		Default="2.2958"
+		Mode=""
+		Description="Longitude used for the display day/night theme schedule."
+		Display="advanced"
+		Required="false"
+		Mask="false">2.2958</Config>
+</Container>
