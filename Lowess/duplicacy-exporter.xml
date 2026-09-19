@@ -1,0 +1,300 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>Duplicacy-Exporter</Name>
+	<Repository>drumsergio/duplicacy-exporter:latest</Repository>
+	<Registry>https://hub.docker.com/r/drumsergio/duplicacy-exporter</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/GeiserX/duplicacy-exporter/issues</Support>
+	<Overview>
+		Prometheus exporter for Duplicacy backups. Collect real-time backup progress from logs or receive Duplicacy Web UI reports by webhook, with persistent metrics and an optional storage poller.
+	</Overview>
+	<Category>Backup: Tools:</Category>
+	<WebUI>http://[IP]:[PORT:9750]/metrics</WebUI>
+	<TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/duplicacy-exporter.xml</TemplateURL>
+	<Icon>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/duplicacy-exporter.png</Icon>
+	<ExtraParams></ExtraParams>
+	<PostArgs></PostArgs>
+	<Description>
+		Duplicacy Exporter exposes Duplicacy backup metrics for Prometheus and Grafana.
+
+		FEATURES:
+		- Real-time backup speed, progress, and chunk metrics in log-tail mode
+		- Post-run backup summaries from logs or Duplicacy Web UI webhooks
+		- Backup and prune health metrics
+		- Persistent completed-backup metrics across container restarts
+		- Optional Duplicacy storage-size and revision poller
+		- Grafana dashboard 25089
+
+		DEFAULT SETUP - WEBHOOK MODE:
+		1. Start the container with the default Mode set to webhook.
+		2. In Duplicacy Web UI, set report_url to:
+		   http://&lt;unraid-ip&gt;:9750/webhook
+		3. Configure Prometheus to scrape:
+		   http://&lt;unraid-ip&gt;:9750/metrics
+
+		LOG FILE MODE:
+		1. Set Mode to log_tail.
+		2. Select the host directory containing the Duplicacy log for Duplicacy Logs Directory.
+		3. Keep Log File set to /logs/duplicacy.log, or change it to the correct path inside /logs.
+		4. Set Machine Name and, for stock Duplicacy CLI logs without metadata, Snapshot ID.
+
+		DOCKER LOG MODE:
+		To tail another container directly, set Mode to log_tail, clear Log File, select
+		/var/run/docker.sock for Docker Socket, and set Duplicacy Container Name exactly.
+		Mounting the Docker socket gives the exporter highly privileged access to the Docker daemon;
+		shared log-file mode is safer and recommended by the upstream project.
+
+		PERSISTENCE:
+		The Data Directory stores the last completed backup, storage, and prune values so metrics
+		remain available after an exporter restart or image upgrade.
+
+		OPTIONAL STORAGE POLLER:
+		The poller runs Duplicacy list/check commands against initialized repositories. It requires
+		repository mappings and storage credentials, and remote checks can be slow or costly. Leave
+		it disabled unless storage-size and revision metrics are required.
+	</Description>
+	<Beta>False</Beta>
+	<Project>https://github.com/GeiserX/duplicacy-exporter</Project>
+	<Date>2026-09-19</Date>
+	<Changes>
+		###v1.0.0 (2026-09-19)
+		- Initial Unraid template release.
+		- Supports webhook, shared log-file, and optional Docker log-tail modes.
+		- Adds persistent metric state and optional storage-poller configuration.
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+		<Publish>
+			<Port>
+				<HostPort>9750</HostPort>
+				<ContainerPort>9750</ContainerPort>
+				<Protocol>tcp</Protocol>
+			</Port>
+		</Publish>
+	</Networking>
+
+	<!-- HTTP server -->
+	<Config Type="Port" Name="Metrics / Webhook Port"
+		Target="9750"
+		Default="9750"
+		Mode="tcp"
+		Description="HTTP port for /metrics, /health, and the webhook endpoint."
+		Display="always"
+		Required="true"
+		Mask="false">9750</Config>
+
+	<!-- Persistent and optional input paths -->
+	<Config Type="Path" Name="Data Directory"
+		Target="/data"
+		Default="/mnt/user/appdata/duplicacy-exporter"
+		Mode="rw"
+		Description="Persistent exporter state and last-seen log timestamp."
+		Display="always"
+		Required="true"
+		Mask="false">/mnt/user/appdata/duplicacy-exporter</Config>
+
+	<Config Type="Path" Name="Duplicacy Logs Directory"
+		Target="/logs"
+		Default=""
+		Mode="ro"
+		Description="Optional host directory containing the Duplicacy log. Required when Mode is log_tail and Log File is used."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<Config Type="Path" Name="Docker Socket"
+		Target="/var/run/docker.sock"
+		Default=""
+		Mode="ro"
+		Description="Optional Docker socket for direct container-log tailing. Clear Log File when using this. WARNING: Docker socket access is highly privileged."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<Config Type="Path" Name="Poller Repositories Directory"
+		Target="/repos"
+		Default=""
+		Mode="rw"
+		Description="Optional parent directory containing initialized Duplicacy repositories used by the storage poller. Reference child paths under /repos in Poller Repositories JSON."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<!-- Collection mode -->
+	<Config Type="Variable" Name="Mode"
+		Target="MODE"
+		Default="webhook"
+		Mode=""
+		Description="Collection mode: webhook receives Duplicacy Web UI reports; log_tail parses a shared log file or Docker container logs."
+		Display="always"
+		Required="true"
+		Mask="false">webhook</Config>
+
+	<Config Type="Variable" Name="Machine Name"
+		Target="MACHINE_NAME"
+		Default="Unraid"
+		Mode=""
+		Description="Machine label fallback. Required in log_tail mode unless the log provides a machine name."
+		Display="always"
+		Required="false"
+		Mask="false">Unraid</Config>
+
+	<Config Type="Variable" Name="Log File"
+		Target="LOG_FILE"
+		Default="/logs/duplicacy.log"
+		Mode=""
+		Description="Log path inside the container for shared log-file mode. Clear this field to tail Docker container logs instead."
+		Display="advanced"
+		Required="false"
+		Mask="false">/logs/duplicacy.log</Config>
+
+	<Config Type="Variable" Name="Duplicacy Container Name"
+		Target="DOCKER_CONTAINER_NAME"
+		Default="duplicacy-cli-cron"
+		Mode=""
+		Description="Exact name of the Duplicacy container to tail when Mode is log_tail, Log File is empty, and the Docker socket is mounted."
+		Display="advanced"
+		Required="false"
+		Mask="false">duplicacy-cli-cron</Config>
+
+	<Config Type="Variable" Name="Snapshot ID"
+		Target="SNAPSHOT_ID"
+		Default=""
+		Mode=""
+		Description="Optional snapshot label for stock Duplicacy CLI logs that do not contain section headers or DUPLICACY_META."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<Config Type="Variable" Name="Webhook Path"
+		Target="WEBHOOK_PATH"
+		Default="/webhook"
+		Mode=""
+		Description="HTTP path that receives Duplicacy Web UI report_url POST requests."
+		Display="advanced"
+		Required="true"
+		Mask="false">/webhook</Config>
+
+	<!-- Labels and log processing -->
+	<Config Type="Variable" Name="Storage Host Map"
+		Target="STORAGE_HOST_MAP"
+		Default=""
+		Mode=""
+		Description="Optional JSON object mapping storage hostnames or IP addresses to friendly labels, for example {&quot;192.168.1.20&quot;:&quot;nas&quot;}."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<Config Type="Variable" Name="Tailscale Domain"
+		Target="TAILSCALE_DOMAIN"
+		Default=""
+		Mode=""
+		Description="Optional Tailscale domain suffix to remove from storage host labels, for example example.ts.net."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<Config Type="Variable" Name="Replay Hours"
+		Target="REPLAY_HOURS"
+		Default="25"
+		Mode=""
+		Description="Hours of Docker log history to replay when direct Docker log tailing starts."
+		Display="advanced"
+		Required="false"
+		Mask="false">25</Config>
+
+	<Config Type="Variable" Name="Maximum Log Buffer"
+		Target="MAX_LOG_BUFFER"
+		Default="1048576"
+		Mode=""
+		Description="Maximum partial Docker log buffer size in bytes before incomplete data is discarded."
+		Display="advanced"
+		Required="false"
+		Mask="false">1048576</Config>
+
+	<Config Type="Variable" Name="Log Level"
+		Target="LOG_LEVEL"
+		Default="INFO"
+		Mode=""
+		Description="Logging verbosity: DEBUG, INFO, WARNING, or ERROR."
+		Display="advanced"
+		Required="false"
+		Mask="false">INFO</Config>
+
+	<!-- Metric persistence -->
+	<Config Type="Variable" Name="Persist Metrics"
+		Target="PERSIST_ENABLED"
+		Default="true"
+		Mode=""
+		Description="Persist the last completed backup, storage, and prune values so they survive restarts."
+		Display="advanced"
+		Required="false"
+		Mask="false">true</Config>
+
+	<Config Type="Variable" Name="State File"
+		Target="STATE_FILE"
+		Default="/data/duplicacy_exporter_state.json"
+		Mode=""
+		Description="Metric-state file inside the container. Keep this under the mapped Data Directory."
+		Display="advanced"
+		Required="false"
+		Mask="false">/data/duplicacy_exporter_state.json</Config>
+
+	<Config Type="Variable" Name="Persistence Interval"
+		Target="PERSIST_INTERVAL"
+		Default="15"
+		Mode=""
+		Description="Seconds between changed-state snapshots."
+		Display="advanced"
+		Required="false"
+		Mask="false">15</Config>
+
+	<!-- Optional storage poller -->
+	<Config Type="Variable" Name="Enable Storage Poller"
+		Target="POLLER_ENABLED"
+		Default="false"
+		Mode=""
+		Description="Enable Duplicacy list/check polling for storage-size and revision metrics. Requires initialized repositories and credentials."
+		Display="advanced"
+		Required="false"
+		Mask="false">false</Config>
+
+	<Config Type="Variable" Name="Poller Repositories"
+		Target="POLLER_REPOSITORIES"
+		Default=""
+		Mode=""
+		Description="JSON list of repositories, for example [{&quot;path&quot;:&quot;/repos/photos&quot;,&quot;storage&quot;:&quot;default&quot;,&quot;snapshot_id&quot;:&quot;photos&quot;}]."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<Config Type="Variable" Name="Poller Interval"
+		Target="POLLER_INTERVAL"
+		Default="86400"
+		Mode=""
+		Description="Seconds between storage-poller cycles. The default is 24 hours."
+		Display="advanced"
+		Required="false"
+		Mask="false">86400</Config>
+
+	<Config Type="Variable" Name="Poller Timeout"
+		Target="POLLER_TIMEOUT"
+		Default="1800"
+		Mode=""
+		Description="Per-command timeout in seconds for Duplicacy list and check operations."
+		Display="advanced"
+		Required="false"
+		Mask="false">1800</Config>
+
+	<Config Type="Variable" Name="Duplicacy Binary"
+		Target="DUPLICACY_BIN"
+		Default="duplicacy"
+		Mode=""
+		Description="Duplicacy executable used by the storage poller. The upstream image bundles this binary."
+		Display="advanced"
+		Required="false"
+		Mask="false">duplicacy</Config>
+</Container>
