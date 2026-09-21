@@ -101,7 +101,10 @@ if ! normalise_settings; then
 fi
 
 if [ -f "$bootstrap_pending" ] && is_true "${AUTO_INITIAL_SYNC:-true}"; then
-	first_vault_entry=$(find /vault -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)
+	if [ -f /vault/.livesync-snapshot.json ]; then
+		echo "[Bootstrap] Ignoring LiveSync CLI snapshot metadata while checking the destination vault."
+	fi
+	first_vault_entry=$(find /vault -mindepth 1 -maxdepth 1 ! -name '.livesync-snapshot.json' -print -quit 2>/dev/null)
 	if [ -n "$first_vault_entry" ]; then
 		echo "[Bootstrap] Automatic initial sync stopped because /vault is not empty: $first_vault_entry"
 		echo "[Bootstrap] Use an empty destination vault, or disable Automatic Initial Sync and manage the merge manually."
