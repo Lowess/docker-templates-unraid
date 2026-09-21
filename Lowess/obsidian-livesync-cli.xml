@@ -13,124 +13,8 @@
 	<TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/obsidian-livesync-cli.xml</TemplateURL>
 	<Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/obsidian-livesync-cli.png</Icon>
 	<ExtraParams>--entrypoint=/bin/sh</ExtraParams>
-	<PostArgs><![CDATA[-c '
-run_uid="${PUID:-99}"
-run_gid="${PGID:-100}"
-settings_file="/data/.livesync/settings.json"
-bootstrap_pending="/data/.livesync/unraid-bootstrap-pending"
-bootstrap_complete="/data/.livesync/unraid-bootstrap-v1"
-
-run_as_user() {
-	setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups "$@"
-}
-
-idle_forever() {
-	exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /bin/sh -c "trap exit TERM INT; while :; do sleep 3600 & wait \$!; done"
-}
-
-is_true() {
-	case "${1:-}" in
-		1|true|TRUE|yes|YES|on|ON) return 0 ;;
-		*) return 1 ;;
-	esac
-}
-
-is_configured() {
-	[ -s "$settings_file" ] && grep -Eq "\"isConfigured\"[[:space:]]*:[[:space:]]*true" "$settings_file"
-}
-
-normalise_settings() {
-	run_as_user node -e "const fs=require(\"fs\"); const p=\"/data/.livesync/settings.json\"; try { const s=JSON.parse(fs.readFileSync(p,\"utf8\")); let changed=false; const raw=process.env.LOCAL_DATABASE_SUFFIX || \"unraid-cli\"; const suffix=raw.replace(/[^A-Za-z0-9._-]/g,\"\") || \"unraid-cli\"; if (s.additionalSuffixOfDatabaseName !== suffix) { s.additionalSuffixOfDatabaseName=suffix; changed=true; console.log(\"[Bootstrap] Local database suffix: \" + suffix); } const enableLive=!/^(0|false|no|off)$/i.test(process.env.ENABLE_LIVE_SYNC || \"true\"); if (enableLive && (s.liveSync !== true || s.syncOnStart !== true || s.syncOnSave !== true)) { s.liveSync=true; s.syncOnStart=true; s.syncOnSave=true; changed=true; console.log(\"[Bootstrap] Continuous and save-triggered replication enabled\"); } if (changed) { const t=p+\".tmp\"; fs.writeFileSync(t,JSON.stringify(s,null,2)); fs.renameSync(t,p); } } catch (e) { console.error(\"[Bootstrap] Could not prepare CLI settings: \" + e.message); process.exit(1); }"
-}
-
-umask "${UMASK:-002}"
-mkdir -p /data/.livesync
-chown "$run_uid:$run_gid" /data /data/.livesync
-if [ -f "$settings_file" ]; then
-	chown "$run_uid:$run_gid" "$settings_file"
-fi
-
-if ! run_as_user test -w /vault; then
-	echo "[Bootstrap] The vault at /vault is not writable by PUID $run_uid and PGID $run_gid."
-	echo "[Bootstrap] Correct the host-directory permissions, then restart this container."
-	idle_forever
-fi
-
-if ! is_configured; then
-	if [ -z "${SETUP_URI:-}" ] || [ -z "${SETUP_PASSPHRASE:-}" ]; then
-		echo "[Bootstrap] Waiting for first-time configuration."
-		echo "[Bootstrap] Edit this container and fill in Setup URI and Setup URI Passphrase, then restart it."
-		idle_forever
-	fi
-
-	echo "[Bootstrap] Importing the supplied Setup URI..."
-	if ! printf "%s\n" "$SETUP_PASSPHRASE" | run_as_user /usr/local/bin/livesync-cli setup "$SETUP_URI"; then
-		echo "[Bootstrap] Setup URI import failed. Check the URI and passphrase in the template."
-		idle_forever
-	fi
-	run_as_user touch "$bootstrap_pending"
-	echo "[Bootstrap] Setup URI imported successfully."
-fi
-
-if ! normalise_settings; then
-	idle_forever
-fi
-
-if [ -f "$bootstrap_pending" ] && is_true "${AUTO_INITIAL_SYNC:-true}"; then
-	first_vault_entry=$(find /vault -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)
-	if [ -n "$first_vault_entry" ]; then
-		echo "[Bootstrap] Automatic initial sync stopped because /vault is not empty: $first_vault_entry"
-		echo "[Bootstrap] Use an empty destination vault, or disable Automatic Initial Sync and manage the merge manually."
-		idle_forever
-	fi
-
-	echo "[Bootstrap] Authorising this new CLI device on the existing remote..."
-	if ! run_as_user /usr/local/bin/livesync-cli mark-resolved; then
-		echo "[Bootstrap] The CLI device could not be authorised. Verify CouchDB connectivity and restart to retry."
-		idle_forever
-	fi
-
-	echo "[Bootstrap] Pulling the existing remote database before the vault scanner starts..."
-	if ! run_as_user /usr/local/bin/livesync-cli sync; then
-		echo "[Bootstrap] Initial CouchDB pull failed. The bootstrap remains pending and will retry after restart."
-		idle_forever
-	fi
-
-	run_as_user mv -f "$bootstrap_pending" "$bootstrap_complete"
-	echo "[Bootstrap] Initial remote sync completed."
-fi
-
-set -- --vault /vault
-case "${LOG_MODE:-normal}" in
-	verbose) set -- "$@" --verbose ;;
-	debug) set -- "$@" --debug ;;
-esac
-if [ -n "${SYNC_INTERVAL:-}" ]; then
-	set -- "$@" --interval "$SYNC_INTERVAL"
-fi
-
-echo "[Bootstrap] Starting the LiveSync daemon."
-stop_requested=0
-child_pid=""
-stop_daemon() {
-	stop_requested=1
-	if [ -n "$child_pid" ]; then
-		kill -TERM "$child_pid" 2>/dev/null || true
-	fi
-}
-trap stop_daemon TERM INT
-run_as_user /usr/local/bin/livesync-cli "$@" daemon &
-child_pid=$!
-wait "$child_pid"
-daemon_status=$?
-if [ "$stop_requested" -eq 1 ]; then
-	exit "$daemon_status"
-fi
-
-echo "[Recovery] LiveSync daemon exited with status $daemon_status."
-echo "[Recovery] The container will remain running so its console and logs stay available."
-idle_forever
-']]></PostArgs>
+	<!-- Payload generated from Lowess/scripts/obsidian-livesync-cli-bootstrap.sh. -->
+	<PostArgs>-c 'printf %s IyEvYmluL3NoCgpydW5fdWlkPSIke1BVSUQ6LTk5fSIKcnVuX2dpZD0iJHtQR0lEOi0xMDB9IgpzZXR0aW5nc19maWxlPSIvZGF0YS8ubGl2ZXN5bmMvc2V0dGluZ3MuanNvbiIKYm9vdHN0cmFwX3BlbmRpbmc9Ii9kYXRhLy5saXZlc3luYy91bnJhaWQtYm9vdHN0cmFwLXBlbmRpbmciCmJvb3RzdHJhcF9jb21wbGV0ZT0iL2RhdGEvLmxpdmVzeW5jL3VucmFpZC1ib290c3RyYXAtdjEiCgpydW5fYXNfdXNlcigpIHsKCXNldHByaXYgLS1yZXVpZD0iJHJ1bl91aWQiIC0tcmVnaWQ9IiRydW5fZ2lkIiAtLWNsZWFyLWdyb3VwcyAiJEAiCn0KCmlkbGVfZm9yZXZlcigpIHsKCWV4ZWMgc2V0cHJpdiAtLXJldWlkPSIkcnVuX3VpZCIgLS1yZWdpZD0iJHJ1bl9naWQiIC0tY2xlYXItZ3JvdXBzIC9iaW4vc2ggLWMgXAoJCSd0cmFwIGV4aXQgVEVSTSBJTlQ7IHdoaWxlIDo7IGRvIHNsZWVwIDM2MDAgJiB3YWl0ICQhOyBkb25lJwp9Cgppc190cnVlKCkgewoJY2FzZSAiJHsxOi19IiBpbgoJCTEgfCB0cnVlIHwgVFJVRSB8IHllcyB8IFlFUyB8IG9uIHwgT04pIHJldHVybiAwIDs7CgkJKikgcmV0dXJuIDEgOzsKCWVzYWMKfQoKaXNfY29uZmlndXJlZCgpIHsKCVsgLXMgIiRzZXR0aW5nc19maWxlIiBdICYmIGdyZXAgLUVxICciaXNDb25maWd1cmVkIltbOnNwYWNlOl1dKjpbWzpzcGFjZTpdXSp0cnVlJyAiJHNldHRpbmdzX2ZpbGUiCn0KCm5vcm1hbGlzZV9zZXR0aW5ncygpIHsKCXJ1bl9hc191c2VyIG5vZGUgLWUgJwpjb25zdCBmcyA9IHJlcXVpcmUoImZzIik7CmNvbnN0IHBhdGggPSAiL2RhdGEvLmxpdmVzeW5jL3NldHRpbmdzLmpzb24iOwoKdHJ5IHsKICAgIGNvbnN0IHNldHRpbmdzID0gSlNPTi5wYXJzZShmcy5yZWFkRmlsZVN5bmMocGF0aCwgInV0ZjgiKSk7CiAgICBsZXQgY2hhbmdlZCA9IGZhbHNlOwogICAgY29uc3QgcmF3U3VmZml4ID0gcHJvY2Vzcy5lbnYuTE9DQUxfREFUQUJBU0VfU1VGRklYIHx8ICJ1bnJhaWQtY2xpIjsKICAgIGNvbnN0IHN1ZmZpeCA9IHJhd1N1ZmZpeC5yZXBsYWNlKC9bXkEtWmEtejAtOS5fLV0vZywgIiIpIHx8ICJ1bnJhaWQtY2xpIjsKCiAgICBpZiAoc2V0dGluZ3MuYWRkaXRpb25hbFN1ZmZpeE9mRGF0YWJhc2VOYW1lICE9PSBzdWZmaXgpIHsKICAgICAgICBzZXR0aW5ncy5hZGRpdGlvbmFsU3VmZml4T2ZEYXRhYmFzZU5hbWUgPSBzdWZmaXg7CiAgICAgICAgY2hhbmdlZCA9IHRydWU7CiAgICAgICAgY29uc29sZS5sb2coYFtCb290c3RyYXBdIExvY2FsIGRhdGFiYXNlIHN1ZmZpeDogJHtzdWZmaXh9YCk7CiAgICB9CgogICAgY29uc3QgZW5hYmxlTGl2ZSA9ICEvXigwfGZhbHNlfG5vfG9mZikkL2kudGVzdChwcm9jZXNzLmVudi5FTkFCTEVfTElWRV9TWU5DIHx8ICJ0cnVlIik7CiAgICBpZiAoZW5hYmxlTGl2ZSAmJiAoc2V0dGluZ3MubGl2ZVN5bmMgIT09IHRydWUgfHwgc2V0dGluZ3Muc3luY09uU3RhcnQgIT09IHRydWUgfHwgc2V0dGluZ3Muc3luY09uU2F2ZSAhPT0gdHJ1ZSkpIHsKICAgICAgICBzZXR0aW5ncy5saXZlU3luYyA9IHRydWU7CiAgICAgICAgc2V0dGluZ3Muc3luY09uU3RhcnQgPSB0cnVlOwogICAgICAgIHNldHRpbmdzLnN5bmNPblNhdmUgPSB0cnVlOwogICAgICAgIGNoYW5nZWQgPSB0cnVlOwogICAgICAgIGNvbnNvbGUubG9nKCJbQm9vdHN0cmFwXSBDb250aW51b3VzIGFuZCBzYXZlLXRyaWdnZXJlZCByZXBsaWNhdGlvbiBlbmFibGVkIik7CiAgICB9CgogICAgaWYgKGNoYW5nZWQpIHsKICAgICAgICBjb25zdCB0ZW1wb3JhcnlQYXRoID0gYCR7cGF0aH0udG1wYDsKICAgICAgICBmcy53cml0ZUZpbGVTeW5jKHRlbXBvcmFyeVBhdGgsIEpTT04uc3RyaW5naWZ5KHNldHRpbmdzLCBudWxsLCAyKSk7CiAgICAgICAgZnMucmVuYW1lU3luYyh0ZW1wb3JhcnlQYXRoLCBwYXRoKTsKICAgIH0KfSBjYXRjaCAoZXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYFtCb290c3RyYXBdIENvdWxkIG5vdCBwcmVwYXJlIENMSSBzZXR0aW5nczogJHtlcnJvci5tZXNzYWdlfWApOwogICAgcHJvY2Vzcy5leGl0KDEpOwp9CicKfQoKdW1hc2sgIiR7VU1BU0s6LTAwMn0iCm1rZGlyIC1wIC9kYXRhLy5saXZlc3luYwpjaG93biAiJHJ1bl91aWQ6JHJ1bl9naWQiIC9kYXRhIC9kYXRhLy5saXZlc3luYwppZiBbIC1mICIkc2V0dGluZ3NfZmlsZSIgXTsgdGhlbgoJY2hvd24gIiRydW5fdWlkOiRydW5fZ2lkIiAiJHNldHRpbmdzX2ZpbGUiCmZpCgppZiAhIHJ1bl9hc191c2VyIHRlc3QgLXcgL3ZhdWx0OyB0aGVuCgllY2hvICJbQm9vdHN0cmFwXSBUaGUgdmF1bHQgYXQgL3ZhdWx0IGlzIG5vdCB3cml0YWJsZSBieSBQVUlEICRydW5fdWlkIGFuZCBQR0lEICRydW5fZ2lkLiIKCWVjaG8gIltCb290c3RyYXBdIENvcnJlY3QgdGhlIGhvc3QtZGlyZWN0b3J5IHBlcm1pc3Npb25zLCB0aGVuIHJlc3RhcnQgdGhpcyBjb250YWluZXIuIgoJaWRsZV9mb3JldmVyCmZpCgppZiAhIGlzX2NvbmZpZ3VyZWQ7IHRoZW4KCWlmIFsgLXogIiR7U0VUVVBfVVJJOi19IiBdIHx8IFsgLXogIiR7U0VUVVBfUEFTU1BIUkFTRTotfSIgXTsgdGhlbgoJCWVjaG8gIltCb290c3RyYXBdIFdhaXRpbmcgZm9yIGZpcnN0LXRpbWUgY29uZmlndXJhdGlvbi4iCgkJZWNobyAiW0Jvb3RzdHJhcF0gRWRpdCB0aGlzIGNvbnRhaW5lciBhbmQgZmlsbCBpbiBTZXR1cCBVUkkgYW5kIFNldHVwIFVSSSBQYXNzcGhyYXNlLCB0aGVuIHJlc3RhcnQgaXQuIgoJCWlkbGVfZm9yZXZlcgoJZmkKCgllY2hvICJbQm9vdHN0cmFwXSBJbXBvcnRpbmcgdGhlIHN1cHBsaWVkIFNldHVwIFVSSS4uLiIKCWlmICEgcHJpbnRmICclc1xuJyAiJFNFVFVQX1BBU1NQSFJBU0UiIHwgcnVuX2FzX3VzZXIgL3Vzci9sb2NhbC9iaW4vbGl2ZXN5bmMtY2xpIHNldHVwICIkU0VUVVBfVVJJIjsgdGhlbgoJCWVjaG8gIltCb290c3RyYXBdIFNldHVwIFVSSSBpbXBvcnQgZmFpbGVkLiBDaGVjayB0aGUgVVJJIGFuZCBwYXNzcGhyYXNlIGluIHRoZSB0ZW1wbGF0ZS4iCgkJaWRsZV9mb3JldmVyCglmaQoJcnVuX2FzX3VzZXIgdG91Y2ggIiRib290c3RyYXBfcGVuZGluZyIKCWVjaG8gIltCb290c3RyYXBdIFNldHVwIFVSSSBpbXBvcnRlZCBzdWNjZXNzZnVsbHkuIgoJZWNobyAiW0Jvb3RzdHJhcF0gQ2xlYXIgdGhlIFNldHVwIFVSSSBhbmQgcGFzc3BocmFzZSBmaWVsZHMgYWZ0ZXIgdGhpcyBib290c3RyYXAgY29tcGxldGVzLiIKZmkKCnVuc2V0IFNFVFVQX1VSSSBTRVRVUF9QQVNTUEhSQVNFCgppZiAhIG5vcm1hbGlzZV9zZXR0aW5nczsgdGhlbgoJaWRsZV9mb3JldmVyCmZpCgppZiBbIC1mICIkYm9vdHN0cmFwX3BlbmRpbmciIF0gJiYgaXNfdHJ1ZSAiJHtBVVRPX0lOSVRJQUxfU1lOQzotdHJ1ZX0iOyB0aGVuCglmaXJzdF92YXVsdF9lbnRyeT0kKGZpbmQgL3ZhdWx0IC1taW5kZXB0aCAxIC1tYXhkZXB0aCAxIC1wcmludCAtcXVpdCAyPi9kZXYvbnVsbCkKCWlmIFsgLW4gIiRmaXJzdF92YXVsdF9lbnRyeSIgXTsgdGhlbgoJCWVjaG8gIltCb290c3RyYXBdIEF1dG9tYXRpYyBpbml0aWFsIHN5bmMgc3RvcHBlZCBiZWNhdXNlIC92YXVsdCBpcyBub3QgZW1wdHk6ICRmaXJzdF92YXVsdF9lbnRyeSIKCQllY2hvICJbQm9vdHN0cmFwXSBVc2UgYW4gZW1wdHkgZGVzdGluYXRpb24gdmF1bHQsIG9yIGRpc2FibGUgQXV0b21hdGljIEluaXRpYWwgU3luYyBhbmQgbWFuYWdlIHRoZSBtZXJnZSBtYW51YWxseS4iCgkJaWRsZV9mb3JldmVyCglmaQoKCWVjaG8gIltCb290c3RyYXBdIEF1dGhvcmlzaW5nIHRoaXMgbmV3IENMSSBkZXZpY2Ugb24gdGhlIGV4aXN0aW5nIHJlbW90ZS4uLiIKCWlmICEgcnVuX2FzX3VzZXIgL3Vzci9sb2NhbC9iaW4vbGl2ZXN5bmMtY2xpIG1hcmstcmVzb2x2ZWQ7IHRoZW4KCQllY2hvICJbQm9vdHN0cmFwXSBUaGUgQ0xJIGRldmljZSBjb3VsZCBub3QgYmUgYXV0aG9yaXNlZC4gVmVyaWZ5IENvdWNoREIgY29ubmVjdGl2aXR5IGFuZCByZXN0YXJ0IHRvIHJldHJ5LiIKCQlpZGxlX2ZvcmV2ZXIKCWZpCgoJZWNobyAiW0Jvb3RzdHJhcF0gUHVsbGluZyB0aGUgZXhpc3RpbmcgcmVtb3RlIGRhdGFiYXNlIGJlZm9yZSB0aGUgdmF1bHQgc2Nhbm5lciBzdGFydHMuLi4iCglpZiAhIHJ1bl9hc191c2VyIC91c3IvbG9jYWwvYmluL2xpdmVzeW5jLWNsaSBzeW5jOyB0aGVuCgkJZWNobyAiW0Jvb3RzdHJhcF0gSW5pdGlhbCBDb3VjaERCIHB1bGwgZmFpbGVkLiBUaGUgYm9vdHN0cmFwIHJlbWFpbnMgcGVuZGluZyBhbmQgd2lsbCByZXRyeSBhZnRlciByZXN0YXJ0LiIKCQlpZGxlX2ZvcmV2ZXIKCWZpCgoJcnVuX2FzX3VzZXIgbXYgLWYgIiRib290c3RyYXBfcGVuZGluZyIgIiRib290c3RyYXBfY29tcGxldGUiCgllY2hvICJbQm9vdHN0cmFwXSBJbml0aWFsIHJlbW90ZSBzeW5jIGNvbXBsZXRlZC4iCmZpCgpzZXQgLS0gLS12YXVsdCAvdmF1bHQKY2FzZSAiJHtMT0dfTU9ERTotbm9ybWFsfSIgaW4KCXZlcmJvc2UpIHNldCAtLSAiJEAiIC0tdmVyYm9zZSA7OwoJZGVidWcpIHNldCAtLSAiJEAiIC0tZGVidWcgOzsKZXNhYwppZiBbIC1uICIke1NZTkNfSU5URVJWQUw6LX0iIF07IHRoZW4KCXNldCAtLSAiJEAiIC0taW50ZXJ2YWwgIiRTWU5DX0lOVEVSVkFMIgpmaQoKZWNobyAiW0Jvb3RzdHJhcF0gU3RhcnRpbmcgdGhlIExpdmVTeW5jIGRhZW1vbi4iCnN0b3BfcmVxdWVzdGVkPTAKY2hpbGRfcGlkPSIiCnN0b3BfZGFlbW9uKCkgewoJc3RvcF9yZXF1ZXN0ZWQ9MQoJaWYgWyAtbiAiJGNoaWxkX3BpZCIgXTsgdGhlbgoJCWtpbGwgLVRFUk0gIiRjaGlsZF9waWQiIDI+L2Rldi9udWxsIHx8IHRydWUKCWZpCn0KdHJhcCBzdG9wX2RhZW1vbiBURVJNIElOVAoKcnVuX2FzX3VzZXIgL3Vzci9sb2NhbC9iaW4vbGl2ZXN5bmMtY2xpICIkQCIgZGFlbW9uICYKY2hpbGRfcGlkPSQhCndhaXQgIiRjaGlsZF9waWQiCmRhZW1vbl9zdGF0dXM9JD8KCmlmIFsgIiRzdG9wX3JlcXVlc3RlZCIgLWVxIDEgXTsgdGhlbgoJZXhpdCAiJGRhZW1vbl9zdGF0dXMiCmZpCgplY2hvICJbUmVjb3ZlcnldIExpdmVTeW5jIGRhZW1vbiBleGl0ZWQgd2l0aCBzdGF0dXMgJGRhZW1vbl9zdGF0dXMuIgplY2hvICJbUmVjb3ZlcnldIFRoZSBjb250YWluZXIgd2lsbCByZW1haW4gcnVubmluZyBzbyBpdHMgY29uc29sZSBhbmQgbG9ncyBzdGF5IGF2YWlsYWJsZS4iCmlkbGVfZm9yZXZlcgo= | base64 -d > /tmp/obsidian-livesync-bootstrap.sh; exec /bin/sh /tmp/obsidian-livesync-bootstrap.sh'</PostArgs>
 	<Description>
 		Obsidian LiveSync CLI is the official headless command-line client for Self-hosted LiveSync. It mirrors a local Markdown vault to the same CouchDB database used by the Obsidian plug-in.
 
@@ -162,6 +46,10 @@ idle_forever
 	<Project>https://github.com/vrtmrz/obsidian-livesync</Project>
 	<Date>2026-09-21</Date>
 	<Changes>
+		###v1.1.1 (2026-09-21)
+		- Packages the bootstrap as a single encoded PostArgs payload so Unraid DockerMan cannot remove required shell command separators.
+		- Keeps the readable bootstrap source alongside the template for syntax checks and future maintenance.
+
 		###v1.1.0 (2026-09-21)
 		- Adds click-and-go bootstrap using masked Setup URI and passphrase fields.
 		- Safely onboards only a new empty vault: import, normalise, authorise this node, pull the remote, then start live replication.
