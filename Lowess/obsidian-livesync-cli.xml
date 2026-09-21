@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<Container version="2">
+	<Name>Obsidian LiveSync CLI</Name>
+	<Repository>ghcr.io/vrtmrz/livesync-cli:latest</Repository>
+	<Registry>https://github.com/vrtmrz/obsidian-livesync/pkgs/container/livesync-cli</Registry>
+	<Network>bridge</Network>
+	<Privileged>false</Privileged>
+	<Support>https://github.com/vrtmrz/obsidian-livesync/issues</Support>
+	<Overview>
+		Headless Self-hosted LiveSync client that continuously synchronizes a local Obsidian vault with CouchDB without running Obsidian.
+	</Overview>
+	<Category>Backup: Tools:</Category>
+	<TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/obsidian-livesync-cli.xml</TemplateURL>
+	<Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/obsidian-livesync-cli.png</Icon>
+	<ExtraParams>--entrypoint=/bin/sh</ExtraParams>
+	<PostArgs>-c 'run_uid="${PUID:-99}"; run_gid="${PGID:-100}"; umask "${UMASK:-002}"; mkdir -p /data/.livesync; chown "$run_uid:$run_gid" /data /data/.livesync; if [ ! -s /data/.livesync/settings.json ] || ! grep -Eq "\"isConfigured\"[[:space:]]*:[[:space:]]*true" /data/.livesync/settings.json; then echo "Obsidian LiveSync CLI is waiting for its one-time setup."; echo "Open the container console and run:"; echo "  setpriv --reuid=\$PUID --regid=\$PGID --clear-groups livesync-cli setup \"YOUR_SETUP_URI\""; echo "Enter the Setup URI passphrase when prompted, then restart this container."; exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /bin/sh -c "trap exit TERM INT; while :; do sleep 3600 &amp; wait \$!; done"; fi; if ! setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups test -w /vault; then echo "The vault at /vault is not writable by PUID $run_uid and PGID $run_gid."; echo "Correct the host-directory permissions, then restart this container."; exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /bin/sh -c "trap exit TERM INT; while :; do sleep 3600 &amp; wait \$!; done"; fi; set -- --vault /vault; case "${LOG_MODE:-normal}" in verbose) set -- "$@" --verbose ;; debug) set -- "$@" --debug ;; esac; if [ -n "${SYNC_INTERVAL:-}" ]; then set -- "$@" --interval "$SYNC_INTERVAL"; fi; exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /usr/local/bin/livesync-cli "$@" daemon'</PostArgs>
+	<Description>
+		Obsidian LiveSync CLI is the official headless command-line client for Self-hosted LiveSync. It mirrors a local Markdown vault to the same CouchDB database used by the Obsidian plug-in.
+
+		FIRST-TIME SETUP:
+		1. In a working Obsidian device, open Self-hosted LiveSync settings and copy the current settings to a new Setup URI. Keep the URI and its one-time passphrase private.
+		2. Install and start this container. Until it is configured, it remains idle and prints setup instructions in its log.
+		3. Open the container console and run:
+		   setpriv --reuid="$PUID" --regid="$PGID" --clear-groups livesync-cli setup "YOUR_SETUP_URI"
+		4. Enter the Setup URI passphrase when prompted, then restart the container.
+
+		PATHS:
+		- Database / Config stores the CLI's private local database and settings. It is not the Obsidian vault.
+		- Obsidian Vault is the directory containing the Markdown files to synchronize.
+		- Keep these mappings separate. Never map /data and /vault to the same host directory.
+
+		OPERATION:
+		- No ports or WebUI are required for CouchDB synchronization.
+		- The CouchDB address embedded in the Setup URI must be reachable from this container. An address using localhost refers to the CLI container itself, not the Unraid host or another CouchDB container.
+		- The default mode follows CouchDB's live changes feed. Set Sync Interval only when periodic polling is preferred or a reverse proxy cannot keep the changes feed open.
+		- The configured PUID and PGID must have read/write access to the mapped vault. The startup wrapper only adjusts ownership of the dedicated /data directory; it never changes vault ownership.
+		- Back up the vault before first use, and do not run another file-sync tool against the same server-side vault directory.
+	</Description>
+	<Beta>True</Beta>
+	<Project>https://github.com/vrtmrz/obsidian-livesync</Project>
+	<Date>2026-09-21</Date>
+	<Changes>
+		###v1.0.0 (2026-09-21)
+		- Initial Unraid template release.
+		- Runs the official LiveSync CLI image as a continuous CouchDB-to-vault daemon.
+		- Adds an idle first-run state with interactive Setup URI initialization.
+		- Supports Unraid PUID, PGID, umask, polling interval, and verbose logging options.
+	</Changes>
+	<Networking>
+		<Mode>bridge</Mode>
+	</Networking>
+
+	<!-- Persistent paths -->
+	<Config Type="Path" Name="Database / Config"
+		Target="/data"
+		Default="/mnt/user/appdata/obsidian-livesync-cli"
+		Mode="rw"
+		Description="Dedicated persistent directory for the CLI's local database and .livesync/settings.json. Do not map this to the vault."
+		Display="always"
+		Required="true"
+		Mask="false">/mnt/user/appdata/obsidian-livesync-cli</Config>
+
+	<Config Type="Path" Name="Obsidian Vault"
+		Target="/vault"
+		Default="/mnt/user/obsidian"
+		Mode="rw"
+		Description="Host directory containing the Markdown vault to synchronize. PUID and PGID must have read/write access."
+		Display="always"
+		Required="true"
+		Mask="false">/mnt/user/obsidian</Config>
+
+	<!-- Unraid file ownership -->
+	<Config Type="Variable" Name="Process User ID"
+		Target="PUID"
+		Default="99"
+		Mode=""
+		Description="User ID used for LiveSync database and vault file access. Unraid's standard nobody user is 99."
+		Display="advanced"
+		Required="true"
+		Mask="false">99</Config>
+
+	<Config Type="Variable" Name="Process Group ID"
+		Target="PGID"
+		Default="100"
+		Mode=""
+		Description="Group ID used for LiveSync database and vault file access. Unraid's standard users group is 100."
+		Display="advanced"
+		Required="true"
+		Mask="false">100</Config>
+
+	<Config Type="Variable" Name="File Creation Mask"
+		Target="UMASK"
+		Default="002"
+		Mode=""
+		Description="Unix umask applied to files created by the CLI. 002 keeps files writable by the configured group."
+		Display="advanced"
+		Required="true"
+		Mask="false">002</Config>
+
+	<!-- Optional daemon behaviour -->
+	<Config Type="Variable" Name="Sync Interval"
+		Target="SYNC_INTERVAL"
+		Default=""
+		Mode=""
+		Description="Optional polling interval in seconds. Leave empty for the near-real-time CouchDB changes feed."
+		Display="advanced"
+		Required="false"
+		Mask="false"></Config>
+
+	<Config Type="Variable" Name="Log Mode"
+		Target="LOG_MODE"
+		Default="normal"
+		Mode=""
+		Description="Logging detail: normal, verbose, or debug. Debug output can contain sensitive server details."
+		Display="advanced"
+		Required="true"
+		Mask="false">normal</Config>
+</Container>
