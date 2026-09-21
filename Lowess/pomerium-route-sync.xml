@@ -20,8 +20,12 @@
 	</Description>
 	<Beta>True</Beta>
 	<Project>https://github.com/kblomqvist/yasha</Project>
-	<Date>2022-03-21</Date>
+	<Date>2026-09-20</Date>
 	<Changes>
+		###v0.1.0 (2026-09-20)
+		- Added opt-in WebSocket support and Host header preservation for generated routes.
+		- Fixed authorized-domain rendering and whitespace handling.
+
 		###v0.0.1 (2022-03-21)
 		- Initial release.
 	</Changes>
@@ -48,10 +52,24 @@
 
 	<Config Type="Variable" Name="Pomerium Routes" Target="POMERIUM_ROUTES"
 		Default=""
-		Description="A comma separated value (CSV) list of routes. a route is expressed in the form of {from}=>{to} eg 'http://proxy.acme.duckdns.org => http://192.168.1.100:20443 ,"
+		Description="A comma separated value (CSV) list of routes. A route is expressed as {public HTTPS URL}=>{internal HTTP URL}, for example 'https://notes.acme.duckdns.org=>http://obsidian:3000'."
 		Mask="false"
 		Display="always"
 		Required="false"></Config>
+
+	<Config Type="Variable" Name="Allow WebSockets" Target="POMERIUM_ROUTES_ALLOW_WEBSOCKETS"
+		Default="false"
+		Description="Enable WebSocket upgrades on all generated routes. Required for applications such as LinuxServer Selkies desktops, including Obsidian."
+		Mask="false"
+		Display="advanced"
+		Required="false">false</Config>
+
+	<Config Type="Variable" Name="Preserve Host Header" Target="POMERIUM_ROUTES_PRESERVE_HOST_HEADER"
+		Default="false"
+		Description="Pass the original public Host header to upstream applications on all generated routes."
+		Mask="false"
+		Display="advanced"
+		Required="false">false</Config>
 
 	<Config Type="Variable" Name="Pomerium Routes Authorized Domains"
 		Target="POMERIUM_ROUTES_AUTHORIZED_DOMAINS"

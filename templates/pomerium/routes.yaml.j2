@@ -1,7 +1,10 @@
 {#- Input variable parsing -#}
 {%- set routes_domain = (('POMERIUM_ROUTES_DOMAIN' | env) | default("", true)) -%}
-{%- set trusted_emails = (('POMERIUM_ROUTES_AUTHORIZED_EMAILS' | env) | default("", true)).split(',') | reject("eq", "") | list  -%}
-{%- set routes = (('POMERIUM_ROUTES' | env) | default("", true)).split(',') | reject("eq", "") | list -%}
+{%- set trusted_emails = (('POMERIUM_ROUTES_AUTHORIZED_EMAILS' | env) | default("", true)).split(',') | map('trim') | reject("eq", "") | list -%}
+{%- set trusted_domains = (('POMERIUM_ROUTES_AUTHORIZED_DOMAINS' | env) | default("", true)).split(',') | map('trim') | reject("eq", "") | list -%}
+{%- set routes = (('POMERIUM_ROUTES' | env) | default("", true)).split(',') | map('trim') | reject("eq", "") | list -%}
+{%- set allow_websockets = ((('POMERIUM_ROUTES_ALLOW_WEBSOCKETS' | env) | default("false", true) | lower) in ['1', 'true', 'yes', 'on']) -%}
+{%- set preserve_host_header = ((('POMERIUM_ROUTES_PRESERVE_HOST_HEADER' | env) | default("false", true) | lower) in ['1', 'true', 'yes', 'on']) -%}
 
 {#- Macro -#}
 {%- macro render_allow(trusted_emails, trusted_domains) -%}
@@ -34,9 +37,11 @@ or:
 ### File last generated on {{ "date" | shell }}
 routes:
   {% for route in routes %}
-  {%- set route_from, route_to = route.split("=>") %}
+  {%- set route_from, route_to = route.split("=>", 1) %}
   - from: {{ render_domain(route_from | trim, routes_domain) }}
     to: {{ route_to | trim }}
+    allow_websockets: {{ 'true' if allow_websockets else 'false' }}
+    preserve_host_header: {{ 'true' if preserve_host_header else 'false' }}
     pass_identity_headers: true
     policy:
       - allow:

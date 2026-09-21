@@ -12,7 +12,7 @@
 	<Category>Network:Proxy</Category>
 	<WebUI>http://[IP]:[PORT:80]</WebUI>
 	<TemplateURL>
-		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/prometheus.xml</TemplateURL>
+		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/pomerium.xml</TemplateURL>
 	<Icon>
 		https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/pomerium.png</Icon>
 	<ExtraParams />
@@ -22,8 +22,13 @@
 	</Description>
 	<Beta>True</Beta>
 	<Project>https://www.pomerium.com/</Project>
-	<Date>2022-03-16</Date>
+	<Date>2026-09-20</Date>
 	<Changes>
+		###v0.1.0 (2026-09-20)
+		- Added trusted reverse proxy hop configuration for direct use behind Nginx Proxy Manager.
+		- Documented direct routing from Nginx Proxy Manager to Pomerium.
+		- Fixed the template URL.
+
 		###v0.0.1 (2022-03-18)
 		- Initial release.
 	</Changes>
@@ -65,12 +70,12 @@
 		Display="advanced"
 		Required="false">true</Config>
 
-	<Config Type="Variable" Name="Forward Auth URL" Target="FORWARD_AUTH_URL"
-		Default="http://fwdauth.domain.duckdns.org"
-		Description="Forward authentication creates an endpoint that can be used with third-party proxies that do not have rich access control capabilities. Forward authentication allows you to delegate authentication and authorization for each request to Pomerium."
+	<Config Type="Variable" Name="Trusted Reverse Proxy Hops" Target="XFF_NUM_TRUSTED_HOPS"
+		Default="0"
+		Description="Number of trusted reverse proxy hops in front of Pomerium. Set to 1 when Nginx Proxy Manager connects directly to this container so Pomerium trusts the original HTTPS scheme. Keep Pomerium reachable only through that trusted proxy."
 		Mask="false"
 		Display="advanced"
-		Required="false">http://fwdauth.[domain].duckdns.org</Config>
+		Required="false">0</Config>
 
 	<Config Type="Variable" Name="Authenticate Service URL" Target="AUTHENTICATE_SERVICE_URL"
 		Default="https://authenticate.domain.duckdns.org"
