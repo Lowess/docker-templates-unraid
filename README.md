@@ -2,6 +2,15 @@
 
 Docker templates for [Unraid](https://unraid.net/)
 
+## Automatic catalog updates
+
+The [Unraid Template Sync](apps/unraid-template-sync/README.md) catalog app
+receives authenticated GitHub push webhooks and refreshes the private Community
+Applications templates automatically. It validates the webhook secret, exact
+repository and branch, and GitHub's current webhook source networks before
+updating the checkout. See its README for the one-time image publication,
+Nginx Proxy Manager, and GitHub webhook setup.
+
 ## Pomerium behind Nginx Proxy Manager
 
 Use Nginx Proxy Manager as the public TLS endpoint and send protected application

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>Unraid Template Sync</Name>
+  <Repository>ghcr.io/lowess/unraid-template-sync:latest</Repository>
+  <Registry>https://github.com/Lowess/docker-templates-unraid/pkgs/container/unraid-template-sync</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Lowess/docker-templates-unraid/issues</Support>
+  <Overview>Receives authenticated GitHub push webhooks and automatically refreshes this Unraid server's private Community Applications XML templates.</Overview>
+  <Category>Tools:Utilities</Category>
+  <WebUI>http://[IP]:[PORT:9000]/healthz</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/unraid-template-sync.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/containers.png</Icon>
+  <ExtraParams>--security-opt=no-new-privileges:true</ExtraParams>
+  <Description>
+    Secure webhook receiver for the Lowess Unraid template catalog.
+
+    It validates GitHub's HMAC-SHA256 signature, repository, branch, delivery ID, and current webhook source network before fetching the configured public repository over HTTPS. It then force-resets the mounted checkout and mirrors Lowess/*.xml to Community Applications private templates. A startup sync recovers changes missed while the container was stopped.
+
+    Put this service behind an HTTPS Nginx Proxy Manager host and use the same high-entropy webhook secret in this template and GitHub. Restrict NPM to the current GitHub webhook CIDRs from https://api.github.com/meta. See the project README for setup details.
+  </Description>
+  <Project>https://github.com/Lowess/docker-templates-unraid/tree/main/apps/unraid-template-sync</Project>
+  <Date>2026-09-21</Date>
+  <Changes>
+    ###v1.0.0 (2026-09-21)
+    - Initial release with HMAC, repository, branch, delivery replay, and GitHub source-IP validation.
+    - Added asynchronous webhook handling, startup reconciliation, and health reporting.
+  </Changes>
+
+  <Config Type="Path" Name="Template repository checkout" Target="/repo"
+    Default="/boot/config/plugins/community.applications/docker-templates-unraid"
+    Mode="rw"
+    Description="Existing docker-templates-unraid Git checkout. Local tracked changes and, when enabled, untracked files are discarded during sync."
+    Display="always" Required="true" Mask="false">/boot/config/plugins/community.applications/docker-templates-unraid</Config>
+
+  <Config Type="Path" Name="Private template destination" Target="/templates"
+    Default="/boot/config/plugins/community.applications/private/Lowess"
+    Mode="rw"
+    Description="Destination for the mirrored Lowess XML templates. Stale XML files are deleted; non-XML files are left untouched."
+    Display="always" Required="true" Mask="false">/boot/config/plugins/community.applications/private/Lowess</Config>
+
+  <Config Type="Path" Name="Application state" Target="/data"
+    Default="/mnt/user/appdata/unraid-template-sync"
+    Mode="rw"
+    Description="Stores the last known-good GitHub webhook CIDR cache."
+    Display="advanced" Required="true" Mask="false">/mnt/user/appdata/unraid-template-sync</Config>
+
+  <Config Type="Port" Name="Webhook HTTP port" Target="9000"
+    Default="9141" Mode="tcp"
+    Description="HTTP port consumed by Nginx Proxy Manager. Do not expose it directly to the internet."
+    Display="always" Required="true" Mask="false">9141</Config>
+
+  <Config Type="Variable" Name="GitHub Webhook Secret" Target="WEBHOOK_SECRET"
+    Default=""
+    Description="Required high-entropy secret shared with the GitHub repository webhook. Generate one with: openssl rand -hex 32"
+    Display="always" Required="true" Mask="true"></Config>
+
+  <Config Type="Variable" Name="GitHub Repository" Target="GITHUB_REPOSITORY"
+    Default="Lowess/docker-templates-unraid"
+    Description="Only webhook payloads for this exact owner/repository are accepted."
+    Display="always" Required="true" Mask="false">Lowess/docker-templates-unraid</Config>
+
+  <Config Type="Variable" Name="GitHub Branch" Target="GITHUB_BRANCH"
+    Default="main"
+    Description="Only pushes to this branch start a sync."
+    Display="always" Required="true" Mask="false">main</Config>
+
+  <Config Type="Variable" Name="Git HTTPS URL" Target="GIT_REMOTE_URL"
+    Default="https://github.com/Lowess/docker-templates-unraid.git"
+    Description="Public HTTPS Git URL used for fetches; no host SSH keys are mounted."
+    Display="advanced" Required="true" Mask="false">https://github.com/Lowess/docker-templates-unraid.git</Config>
+
+  <Config Type="Variable" Name="Trusted NPM proxy CIDRs" Target="TRUSTED_PROXY_CIDRS"
+    Default="172.16.0.0/12"
+    Description="Comma-separated proxy networks allowed to supply X-Forwarded-For. Narrow this to the Docker network or IP used by NPM."
+    Display="advanced" Required="true" Mask="false">172.16.0.0/12</Config>
+
+  <Config Type="Variable" Name="Enforce GitHub webhook IPs" Target="ENFORCE_GITHUB_IPS"
+    Default="true"
+    Description="Dynamically enforce GitHub's current hooks CIDRs. Keep enabled in addition to HMAC validation."
+    Display="advanced" Required="true" Mask="false">true</Config>
+
+  <Config Type="Variable" Name="Clean untracked repository files" Target="GIT_CLEAN"
+    Default="true"
+    Description="Run git clean -fd after reset, matching the previous script. Disable only if this checkout intentionally contains untracked files."
+    Display="advanced" Required="true" Mask="false">true</Config>
+
+  <Config Type="Variable" Name="Sync on container start" Target="SYNC_ON_START"
+    Default="true"
+    Description="Reconcile templates at startup to recover from missed webhook deliveries."
+    Display="advanced" Required="true" Mask="false">true</Config>
+</Container>

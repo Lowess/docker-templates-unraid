@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Container version="2">
-	<Name>Obsidian LiveSync CLI</Name>
+	<Name>Obsidian-Live-Sync-Cli</Name>
 	<Repository>ghcr.io/vrtmrz/livesync-cli:latest</Repository>
 	<Registry>https://github.com/vrtmrz/obsidian-livesync/pkgs/container/livesync-cli</Registry>
 	<Network>bridge</Network>
@@ -13,16 +13,135 @@
 	<TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/obsidian-livesync-cli.xml</TemplateURL>
 	<Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/obsidian-livesync-cli.png</Icon>
 	<ExtraParams>--entrypoint=/bin/sh</ExtraParams>
-	<PostArgs>-c 'run_uid="${PUID:-99}"; run_gid="${PGID:-100}"; umask "${UMASK:-002}"; mkdir -p /data/.livesync; chown "$run_uid:$run_gid" /data /data/.livesync; if [ ! -s /data/.livesync/settings.json ] || ! grep -Eq "\"isConfigured\"[[:space:]]*:[[:space:]]*true" /data/.livesync/settings.json; then echo "Obsidian LiveSync CLI is waiting for its one-time setup."; echo "Open the container console and run:"; echo "  setpriv --reuid=\$PUID --regid=\$PGID --clear-groups livesync-cli setup \"YOUR_SETUP_URI\""; echo "Enter the Setup URI passphrase when prompted, then restart this container."; exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /bin/sh -c "trap exit TERM INT; while :; do sleep 3600 &amp; wait \$!; done"; fi; if ! setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups test -w /vault; then echo "The vault at /vault is not writable by PUID $run_uid and PGID $run_gid."; echo "Correct the host-directory permissions, then restart this container."; exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /bin/sh -c "trap exit TERM INT; while :; do sleep 3600 &amp; wait \$!; done"; fi; set -- --vault /vault; case "${LOG_MODE:-normal}" in verbose) set -- "$@" --verbose ;; debug) set -- "$@" --debug ;; esac; if [ -n "${SYNC_INTERVAL:-}" ]; then set -- "$@" --interval "$SYNC_INTERVAL"; fi; exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /usr/local/bin/livesync-cli "$@" daemon'</PostArgs>
+	<PostArgs><![CDATA[-c '
+run_uid="${PUID:-99}"
+run_gid="${PGID:-100}"
+settings_file="/data/.livesync/settings.json"
+bootstrap_pending="/data/.livesync/unraid-bootstrap-pending"
+bootstrap_complete="/data/.livesync/unraid-bootstrap-v1"
+
+run_as_user() {
+	setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups "$@"
+}
+
+idle_forever() {
+	exec setpriv --reuid="$run_uid" --regid="$run_gid" --clear-groups /bin/sh -c "trap exit TERM INT; while :; do sleep 3600 & wait \$!; done"
+}
+
+is_true() {
+	case "${1:-}" in
+		1|true|TRUE|yes|YES|on|ON) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+is_configured() {
+	[ -s "$settings_file" ] && grep -Eq "\"isConfigured\"[[:space:]]*:[[:space:]]*true" "$settings_file"
+}
+
+normalise_settings() {
+	run_as_user node -e "const fs=require(\"fs\"); const p=\"/data/.livesync/settings.json\"; try { const s=JSON.parse(fs.readFileSync(p,\"utf8\")); let changed=false; const raw=process.env.LOCAL_DATABASE_SUFFIX || \"unraid-cli\"; const suffix=raw.replace(/[^A-Za-z0-9._-]/g,\"\") || \"unraid-cli\"; if (s.additionalSuffixOfDatabaseName !== suffix) { s.additionalSuffixOfDatabaseName=suffix; changed=true; console.log(\"[Bootstrap] Local database suffix: \" + suffix); } const enableLive=!/^(0|false|no|off)$/i.test(process.env.ENABLE_LIVE_SYNC || \"true\"); if (enableLive && (s.liveSync !== true || s.syncOnStart !== true || s.syncOnSave !== true)) { s.liveSync=true; s.syncOnStart=true; s.syncOnSave=true; changed=true; console.log(\"[Bootstrap] Continuous and save-triggered replication enabled\"); } if (changed) { const t=p+\".tmp\"; fs.writeFileSync(t,JSON.stringify(s,null,2)); fs.renameSync(t,p); } } catch (e) { console.error(\"[Bootstrap] Could not prepare CLI settings: \" + e.message); process.exit(1); }"
+}
+
+umask "${UMASK:-002}"
+mkdir -p /data/.livesync
+chown "$run_uid:$run_gid" /data /data/.livesync
+if [ -f "$settings_file" ]; then
+	chown "$run_uid:$run_gid" "$settings_file"
+fi
+
+if ! run_as_user test -w /vault; then
+	echo "[Bootstrap] The vault at /vault is not writable by PUID $run_uid and PGID $run_gid."
+	echo "[Bootstrap] Correct the host-directory permissions, then restart this container."
+	idle_forever
+fi
+
+if ! is_configured; then
+	if [ -z "${SETUP_URI:-}" ] || [ -z "${SETUP_PASSPHRASE:-}" ]; then
+		echo "[Bootstrap] Waiting for first-time configuration."
+		echo "[Bootstrap] Edit this container and fill in Setup URI and Setup URI Passphrase, then restart it."
+		idle_forever
+	fi
+
+	echo "[Bootstrap] Importing the supplied Setup URI..."
+	if ! printf "%s\n" "$SETUP_PASSPHRASE" | run_as_user /usr/local/bin/livesync-cli setup "$SETUP_URI"; then
+		echo "[Bootstrap] Setup URI import failed. Check the URI and passphrase in the template."
+		idle_forever
+	fi
+	run_as_user touch "$bootstrap_pending"
+	echo "[Bootstrap] Setup URI imported successfully."
+fi
+
+if ! normalise_settings; then
+	idle_forever
+fi
+
+if [ -f "$bootstrap_pending" ] && is_true "${AUTO_INITIAL_SYNC:-true}"; then
+	first_vault_entry=$(find /vault -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)
+	if [ -n "$first_vault_entry" ]; then
+		echo "[Bootstrap] Automatic initial sync stopped because /vault is not empty: $first_vault_entry"
+		echo "[Bootstrap] Use an empty destination vault, or disable Automatic Initial Sync and manage the merge manually."
+		idle_forever
+	fi
+
+	echo "[Bootstrap] Authorising this new CLI device on the existing remote..."
+	if ! run_as_user /usr/local/bin/livesync-cli mark-resolved; then
+		echo "[Bootstrap] The CLI device could not be authorised. Verify CouchDB connectivity and restart to retry."
+		idle_forever
+	fi
+
+	echo "[Bootstrap] Pulling the existing remote database before the vault scanner starts..."
+	if ! run_as_user /usr/local/bin/livesync-cli sync; then
+		echo "[Bootstrap] Initial CouchDB pull failed. The bootstrap remains pending and will retry after restart."
+		idle_forever
+	fi
+
+	run_as_user mv -f "$bootstrap_pending" "$bootstrap_complete"
+	echo "[Bootstrap] Initial remote sync completed."
+fi
+
+set -- --vault /vault
+case "${LOG_MODE:-normal}" in
+	verbose) set -- "$@" --verbose ;;
+	debug) set -- "$@" --debug ;;
+esac
+if [ -n "${SYNC_INTERVAL:-}" ]; then
+	set -- "$@" --interval "$SYNC_INTERVAL"
+fi
+
+echo "[Bootstrap] Starting the LiveSync daemon."
+stop_requested=0
+child_pid=""
+stop_daemon() {
+	stop_requested=1
+	if [ -n "$child_pid" ]; then
+		kill -TERM "$child_pid" 2>/dev/null || true
+	fi
+}
+trap stop_daemon TERM INT
+run_as_user /usr/local/bin/livesync-cli "$@" daemon &
+child_pid=$!
+wait "$child_pid"
+daemon_status=$?
+if [ "$stop_requested" -eq 1 ]; then
+	exit "$daemon_status"
+fi
+
+echo "[Recovery] LiveSync daemon exited with status $daemon_status."
+echo "[Recovery] The container will remain running so its console and logs stay available."
+idle_forever
+']]></PostArgs>
 	<Description>
 		Obsidian LiveSync CLI is the official headless command-line client for Self-hosted LiveSync. It mirrors a local Markdown vault to the same CouchDB database used by the Obsidian plug-in.
 
-		FIRST-TIME SETUP:
-		1. In a working Obsidian device, open Self-hosted LiveSync settings and copy the current settings to a new Setup URI. Keep the URI and its one-time passphrase private.
-		2. Install and start this container. Until it is configured, it remains idle and prints setup instructions in its log.
-		3. Open the container console and run:
-		   setpriv --reuid="$PUID" --regid="$PGID" --clear-groups livesync-cli setup "YOUR_SETUP_URI"
-		4. Enter the Setup URI passphrase when prompted, then restart the container.
+		CLICK-AND-GO FIRST BOOT:
+		1. On a working Obsidian device, generate a new Self-hosted LiveSync Setup URI and its passphrase.
+		2. Map Obsidian Vault to a new, empty destination directory. Keep Database / Config separate from it.
+		3. Paste the Setup URI and passphrase into the masked template fields, then start the container.
+		4. The bootstrap imports the settings, fixes device-specific paths, enables live replication, authorises only this new CLI node, pulls the existing CouchDB database, and starts the daemon. No console commands or restart are required.
+		5. After the log reports Initial remote sync completed, clear the Setup URI and passphrase fields from the container definition. The imported settings remain under /data.
+
+		Existing configured installations skip the bootstrap automatically; leave both Setup fields empty. Automatic Initial Sync runs only for settings imported by this template and refuses to continue unless /vault is empty. It never rebuilds or deletes the remote database.
 
 		PATHS:
 		- Database / Config stores the CLI's private local database and settings. It is not the Obsidian vault.
@@ -34,17 +153,30 @@
 		- The CouchDB address embedded in the Setup URI must be reachable from this container. An address using localhost refers to the CLI container itself, not the Unraid host or another CouchDB container.
 		- The default mode follows CouchDB's live changes feed. Set Sync Interval only when periodic polling is preferred or a reverse proxy cannot keep the changes feed open.
 		- The configured PUID and PGID must have read/write access to the mapped vault. The startup wrapper only adjusts ownership of the dedicated /data directory; it never changes vault ownership.
+		- Local Database Suffix replaces device-specific paths imported from another device. Keep it limited to letters, numbers, dots, underscores, and hyphens.
+		- Enable Live Synchronization forces liveSync, syncOnStart, and syncOnSave on for this dedicated CLI client. Disable it only when intentionally inheriting those switches from the Setup URI.
+		- Setup URI and passphrase are masked in the Unraid form but are still Docker environment variables. Clear both fields after successful bootstrap.
 		- Back up the vault before first use, and do not run another file-sync tool against the same server-side vault directory.
 	</Description>
 	<Beta>True</Beta>
 	<Project>https://github.com/vrtmrz/obsidian-livesync</Project>
 	<Date>2026-09-21</Date>
 	<Changes>
+		###v1.1.0 (2026-09-21)
+		- Adds click-and-go bootstrap using masked Setup URI and passphrase fields.
+		- Safely onboards only a new empty vault: import, normalise, authorise this node, pull the remote, then start live replication.
+		- Persists a pending bootstrap marker so interrupted first runs retry without manual commands.
+		- Existing configured installations remain untouched and skip first-run onboarding.
+
 		###v1.0.0 (2026-09-21)
 		- Initial Unraid template release.
 		- Runs the official LiveSync CLI image as a continuous CouchDB-to-vault daemon.
 		- Adds an idle first-run state with interactive Setup URI initialization.
 		- Supports Unraid PUID, PGID, umask, polling interval, and verbose logging options.
+		- Normalizes imported device-local database suffixes so Android vault paths cannot become invalid container paths.
+		- Documents the targeted mark-resolved recovery for a new CLI client joining a locked, rebuilt remote.
+		- Keeps the container running after a daemon failure so recovery commands can be entered through the Unraid console.
+		- Enables continuous and save-triggered CouchDB replication by default, independent of the source device's Setup URI switches.
 	</Changes>
 	<Networking>
 		<Mode>bridge</Mode>
@@ -68,6 +200,25 @@
 		Display="always"
 		Required="true"
 		Mask="false">/mnt/user/obsidian</Config>
+
+	<!-- Guided first-time setup -->
+	<Config Type="Variable" Name="Setup URI (first boot only)"
+		Target="SETUP_URI"
+		Default=""
+		Mode=""
+		Description="Paste the Setup URI generated by a working Self-hosted LiveSync device. Leave empty on an existing configured installation, and clear it after successful bootstrap."
+		Display="always"
+		Required="false"
+		Mask="true"></Config>
+
+	<Config Type="Variable" Name="Setup URI Passphrase (first boot only)"
+		Target="SETUP_PASSPHRASE"
+		Default=""
+		Mode=""
+		Description="Passphrase created with the Setup URI. Leave empty on an existing configured installation, and clear it after successful bootstrap."
+		Display="always"
+		Required="false"
+		Mask="true"></Config>
 
 	<!-- Unraid file ownership -->
 	<Config Type="Variable" Name="Process User ID"
@@ -96,6 +247,33 @@
 		Display="advanced"
 		Required="true"
 		Mask="false">002</Config>
+
+	<Config Type="Variable" Name="Local Database Suffix"
+		Target="LOCAL_DATABASE_SUFFIX"
+		Default="unraid-cli"
+		Mode=""
+		Description="Safe device-local name for the CLI database. This replaces Android or desktop vault paths imported through a Setup URI."
+		Display="advanced"
+		Required="true"
+		Mask="false">unraid-cli</Config>
+
+	<Config Type="Variable" Name="Enable Live Synchronization"
+		Target="ENABLE_LIVE_SYNC"
+		Default="true"
+		Mode=""
+		Description="Force continuous replication, startup replication, and replication after a local save for this CLI client."
+		Display="advanced"
+		Required="true"
+		Mask="false">true</Config>
+
+	<Config Type="Variable" Name="Automatic Initial Sync"
+		Target="AUTO_INITIAL_SYNC"
+		Default="true"
+		Mode=""
+		Description="After this template imports new settings, require an empty vault, authorise this CLI node, and pull CouchDB before starting the daemon. Keep enabled for click-and-go setup."
+		Display="advanced"
+		Required="true"
+		Mask="false">true</Config>
 
 	<!-- Optional daemon behaviour -->
 	<Config Type="Variable" Name="Sync Interval"
