@@ -8,8 +8,8 @@ The [Unraid Template Sync](https://github.com/Lowess/unraid-template-sync) catal
 receives authenticated GitHub push webhooks and refreshes the private Community
 Applications templates automatically. Nginx Proxy Manager restricts traffic to
 GitHub's current webhook networks; the service validates the webhook secret,
-exact repository, and branch before updating the checkout. See its README for
-Nginx Proxy Manager and GitHub webhook setup.
+exact repository, and branch before cloning or updating its managed checkout.
+See its README for Nginx Proxy Manager and GitHub webhook setup.
 
 ## Pomerium behind Nginx Proxy Manager
 
