@@ -2,10 +2,10 @@
 <Container version="2">
   <Name>Unraid Template Sync</Name>
   <Repository>ghcr.io/lowess/unraid-template-sync:latest</Repository>
-  <Registry>https://github.com/Lowess/docker-templates-unraid/pkgs/container/unraid-template-sync</Registry>
+  <Registry>https://github.com/Lowess/unraid-template-sync/pkgs/container/unraid-template-sync</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
-  <Support>https://github.com/Lowess/docker-templates-unraid/issues</Support>
+  <Support>https://github.com/Lowess/unraid-template-sync/issues</Support>
   <Overview>Receives authenticated GitHub push webhooks and automatically refreshes this Unraid server's private Community Applications XML templates.</Overview>
   <Category>Tools:Utilities</Category>
   <WebUI>http://[IP]:[PORT:9000]/healthz</WebUI>
@@ -15,13 +15,18 @@
   <Description>
     Secure webhook receiver for the Lowess Unraid template catalog.
 
-    It validates GitHub's HMAC-SHA256 signature, repository, branch, delivery ID, and current webhook source network before fetching the configured public repository over HTTPS. It then force-resets the mounted checkout and mirrors Lowess/*.xml to Community Applications private templates. A startup sync recovers changes missed while the container was stopped.
+    It validates GitHub's HMAC-SHA256 signature, repository, branch, and delivery ID before fetching the configured public repository over HTTPS. It then force-resets the mounted checkout and mirrors Lowess/*.xml to Community Applications private templates. A startup sync recovers changes missed while the container was stopped.
 
-    Put this service behind an HTTPS Nginx Proxy Manager host and use the same high-entropy webhook secret in this template and GitHub. Restrict NPM to the current GitHub webhook CIDRs from https://api.github.com/meta. See the project README for setup details.
+    Put this service behind an HTTPS Nginx Proxy Manager host, restrict NPM to the current GitHub webhook CIDRs from https://api.github.com/meta, and use the same high-entropy webhook secret in this template and GitHub. IP allowlisting is intentionally handled by NPM, not the application. See the project README for setup details.
   </Description>
-  <Project>https://github.com/Lowess/docker-templates-unraid/tree/main/apps/unraid-template-sync</Project>
-  <Date>2026-09-21</Date>
+  <Project>https://github.com/Lowess/unraid-template-sync</Project>
+  <Date>2026-09-22</Date>
   <Changes>
+    ###v1.1.0 (2026-09-22)
+    - Moved the Go service and GHCR build to the dedicated Lowess/unraid-template-sync project.
+    - Moved GitHub webhook IP allowlisting exclusively to Nginx Proxy Manager.
+    - Removed the application state mount and proxy/IP enforcement settings.
+
     ###v1.0.0 (2026-09-21)
     - Initial release with HMAC, repository, branch, delivery replay, and GitHub source-IP validation.
     - Added asynchronous webhook handling, startup reconciliation, and health reporting.
@@ -38,12 +43,6 @@
     Mode="rw"
     Description="Destination for the mirrored Lowess XML templates. Stale XML files are deleted; non-XML files are left untouched."
     Display="always" Required="true" Mask="false">/boot/config/plugins/community.applications/private/Lowess</Config>
-
-  <Config Type="Path" Name="Application state" Target="/data"
-    Default="/mnt/user/appdata/unraid-template-sync"
-    Mode="rw"
-    Description="Stores the last known-good GitHub webhook CIDR cache."
-    Display="advanced" Required="true" Mask="false">/mnt/user/appdata/unraid-template-sync</Config>
 
   <Config Type="Port" Name="Webhook HTTP port" Target="9000"
     Default="9141" Mode="tcp"
@@ -69,16 +68,6 @@
     Default="https://github.com/Lowess/docker-templates-unraid.git"
     Description="Public HTTPS Git URL used for fetches; no host SSH keys are mounted."
     Display="advanced" Required="true" Mask="false">https://github.com/Lowess/docker-templates-unraid.git</Config>
-
-  <Config Type="Variable" Name="Trusted NPM proxy CIDRs" Target="TRUSTED_PROXY_CIDRS"
-    Default="172.16.0.0/12"
-    Description="Comma-separated proxy networks allowed to supply X-Forwarded-For. Narrow this to the Docker network or IP used by NPM."
-    Display="advanced" Required="true" Mask="false">172.16.0.0/12</Config>
-
-  <Config Type="Variable" Name="Enforce GitHub webhook IPs" Target="ENFORCE_GITHUB_IPS"
-    Default="true"
-    Description="Dynamically enforce GitHub's current hooks CIDRs. Keep enabled in addition to HMAC validation."
-    Display="advanced" Required="true" Mask="false">true</Config>
 
   <Config Type="Variable" Name="Clean untracked repository files" Target="GIT_CLEAN"
     Default="true"
