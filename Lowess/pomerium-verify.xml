@@ -13,8 +13,7 @@
   <WebUI>http://[IP]:[PORT:8000]</WebUI>
   <TemplateURL>
     https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/pomerium-verify.xml</TemplateURL>
-  <Icon>
-    https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/pomerium-verify.png</Icon>
+  <Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/pomerium-verify.png</Icon>
   <ExtraParams />
   <Description>
     Pomerium Verify service
