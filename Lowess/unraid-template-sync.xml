@@ -10,7 +10,7 @@
   <Category>Tools:Utilities</Category>
   <WebUI>http://[IP]:[PORT:9000]/healthz</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/unraid-template-sync.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/Lowess/docker-templates-unraid/main/Lowess/images/containers.png</Icon>
+  <Icon>https://raw.githubusercontent.com/Lowess/unraid-template-sync/main/assets/unraid-template-sync.png</Icon>
   <ExtraParams>--security-opt=no-new-privileges:true</ExtraParams>
   <Description>
     Secure webhook receiver for the Lowess Unraid template catalog.
@@ -20,8 +20,11 @@
     Put this service behind an HTTPS Nginx Proxy Manager host, restrict NPM to the current GitHub webhook CIDRs from https://api.github.com/meta, and use the same high-entropy webhook secret in this template and GitHub. IP allowlisting is intentionally handled by NPM, not the application. See the project README for setup details.
   </Description>
   <Project>https://github.com/Lowess/unraid-template-sync</Project>
-  <Date>2026-09-22</Date>
+  <Date>2026-09-23</Date>
   <Changes>
+    ###v1.2.1 (2026-09-23)
+    - Added the dedicated Unraid Template Sync application logo.
+
     ###v1.2.0 (2026-09-22)
     - Clone the public template repository automatically when the managed checkout is empty.
     - Refuse to overwrite non-Git files during first-start bootstrap.
